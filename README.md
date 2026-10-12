@@ -6,7 +6,7 @@ Open `index.html` in a browser. There's no build step, server or API key.
 
 ## How it works
 
-- **Fixtures** come from ESPN's public scoreboard API (`site.api.espn.com/.../soccer/{league}/scoreboard?dates=YYYYMMDD-YYYYMMDD`). This is an unofficial endpoint: it needs no key, but it could change without notice. Each competition is one request, and responses are cached in `localStorage` (10 min when today is in range, so live scores update, otherwise 6 h).
+- **Fixtures** come from ESPN's public scoreboard API (`site.api.espn.com/.../soccer/{league}/scoreboard?dates=YYYYMMDD`). This is an unofficial endpoint: it needs no key and allows browser requests (CORS), but it could change without notice. It only accepts a single day (date ranges return 400), so the page makes one request per competition per day. Each day is cached in `localStorage`: 10 min around today, so live scores update, 6 h for future days and 7 days for finished ones.
 - **Stadium locations:** ESPN gives the venue name, city and country, but no coordinates. The page looks them up with [Photon](https://photon.komoot.io) (OpenStreetMap). It finds the city first, then searches for a stadium within 40 km of it. If no stadium is found, the pin goes on the city centre and is drawn with a dashed border. Locations are cached in `localStorage` permanently.
 - **Kick-off times** use the stadium's time zone, worked out from its country, with your own time shown next to it. The Local/Mine toggle switches between the two.
 - **Map tiles** come from Esri basemaps, which need no key and also work when the page is opened as a local file.

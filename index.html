@@ -380,7 +380,7 @@ const COMP_BY_SLUG = Object.fromEntries(COMPETITIONS.map(c => [c.slug, c]));
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 const PHOTON = 'https://photon.komoot.io/api/';
 const MAX_RANGE_DAYS = 31;
-const FETCH_CONCURRENCY = 6;
+const FETCH_CONCURRENCY = 8;
 const GEOCODE_CONCURRENCY = 3;
 
 // Kick-offs are shown in the stadium's time zone, which we infer from the country ESPN gives us.
@@ -541,31 +541,45 @@ function normalizeEvent(ev, comp) {
     };
 }
 
-function fixturesCacheKey(slug, start, end) { return `fp:fx:${slug}:${start}:${end}`; }
+function fixturesCacheKey(slug, day) { return `fp:fx:${slug}:${day}`; }
 
-async function fetchCompetition(comp, start, end) {
-    const key = fixturesCacheKey(comp.slug, start, end);
+// Keep only the fields normalizeEvent reads, so a month of fixtures fits in localStorage.
+function slimEvent(ev) {
+    const c = (ev.competitions && ev.competitions[0]) || {};
+    const team = t => t && { displayName: t.displayName, name: t.name, shortDisplayName: t.shortDisplayName, abbreviation: t.abbreviation,
+        logo: t.logo || (t.logos && t.logos[0] && t.logos[0].href) };
+    return {
+        id: ev.id, date: ev.date, timeValid: ev.timeValid,
+        status: ev.status && { type: ev.status.type && (({ state, name, shortDetail, detail }) => ({ state, name, shortDetail, detail }))(ev.status.type) },
+        links: (ev.links || []).filter(l => (l.rel || []).includes('summary')).slice(0, 1).map(l => ({ rel: l.rel, href: l.href })),
+        competitions: [{
+            date: c.date, timeValid: c.timeValid, neutralSite: c.neutralSite,
+            venue: c.venue && { fullName: c.venue.fullName, displayName: c.venue.displayName, address: c.venue.address && { city: c.venue.address.city, country: c.venue.address.country } },
+            competitors: (c.competitors || []).map(t => ({ homeAway: t.homeAway, score: t.score, winner: t.winner, team: team(t.team) })),
+        }],
+    };
+}
+
+// ESPN's soccer scoreboard only accepts a single day (YYYYMMDD); ranges return 400.
+async function fetchDay(comp, day) {
+    const key = fixturesCacheKey(comp.slug, day);
     const today = isoDay(new Date());
-    const includesToday = start <= today && today <= end;
-    const ttl = includesToday ? 10 * 60e3 : 6 * 3600e3; // keep live scores fresh
+    const age = dayDiff(day, today); // positive = in the past
+    const ttl = age > 1 ? 7 * 86400e3 : age >= -1 ? 10 * 60e3 : 6 * 3600e3; // results are final; keep live scores fresh
     const cached = store.get(key, null);
     if (cached && Date.now() - cached.t < ttl) return cached.events;
 
-    // ESPN's day boundaries aren't European ones, so pad a day each side and trim later by local date.
-    const from = addDays(start, -1).replaceAll('-', '');
-    const to = addDays(end, 1).replaceAll('-', '');
-    const url = `${ESPN_BASE}/${comp.slug}/scoreboard?dates=${from}-${to}&limit=500`;
-    const res = await fetch(url);
+    const res = await fetch(`${ESPN_BASE}/${comp.slug}/scoreboard?dates=${day.replaceAll('-', '')}`);
     if (!res.ok) throw new Error(`ESPN ${res.status}`);
     const data = await res.json();
-    const events = Array.isArray(data.events) ? data.events : [];
+    const events = (Array.isArray(data.events) ? data.events : []).map(slimEvent);
     store.set(key, { t: Date.now(), events });
     return events;
 }
 
 function pruneFixtureCache() {
     try {
-        const cutoff = Date.now() - 24 * 3600e3;
+        const cutoff = Date.now() - 7 * 86400e3;
         for (let i = localStorage.length - 1; i >= 0; i--) {
             const k = localStorage.key(i);
             if (!k || !k.startsWith('fp:fx:')) continue;
@@ -709,25 +723,37 @@ const markerById = new Map();
 
 async function loadFixtures() {
     const token = ++state.loadToken;
-    const { start, end } = state;
-    const todo = COMPETITIONS.filter(c => state.enabled.has(c.slug) && !state.raw.has(c.slug));
-    todo.forEach(c => { state.loading.add(c.slug); state.failed.delete(c.slug); });
+    // ESPN days follow US time, so a European kick-off can sit on the previous ESPN day.
+    const days = [];
+    for (let d = addDays(state.start, -1); d <= state.end; d = addDays(d, 1)) days.push(d);
+
+    // Restart anything a superseded load left half-finished, plus newly enabled competitions.
+    const comps = COMPETITIONS.filter(c => state.enabled.has(c.slug) && (!state.raw.has(c.slug) || state.loading.has(c.slug)));
+    const pending = new Map(comps.map(c => [c.slug, days.length]));
+    const collected = new Map(comps.map(c => [c.slug, []]));
+    state.loading.clear();
+    comps.forEach(c => { state.loading.add(c.slug); state.failed.delete(c.slug); state.raw.delete(c.slug); });
     render();
 
-    await runPool(todo, FETCH_CONCURRENCY, async comp => {
+    // Interleave competitions so every league starts showing results early.
+    const tasks = days.flatMap(day => comps.map(comp => ({ comp, day })));
+    await runPool(tasks, FETCH_CONCURRENCY, async ({ comp, day }) => {
+        if (token !== state.loadToken || state.failed.has(comp.slug)) return;
         try {
-            const events = await fetchCompetition(comp, start, end);
+            const events = await fetchDay(comp, day);
             if (token !== state.loadToken) return;
-            state.raw.set(comp.slug, events);
+            collected.get(comp.slug).push(...events);
+            state.raw.set(comp.slug, collected.get(comp.slug));
         } catch (err) {
             if (token !== state.loadToken) return;
-            state.failed.set(comp.slug, err.message || 'failed');
-        } finally {
-            if (token === state.loadToken) {
-                state.loading.delete(comp.slug);
-                scheduleRender();
-            }
+            state.failed.set(comp.slug, err.message || 'failed'); // skip this league's remaining days
+            state.raw.delete(comp.slug);
+            state.loading.delete(comp.slug);
         }
+        const left = pending.get(comp.slug) - 1;
+        pending.set(comp.slug, left);
+        if (left === 0 && !state.failed.has(comp.slug)) state.loading.delete(comp.slug);
+        scheduleRender();
     });
     if (token === state.loadToken) geocodeMissing();
 }
@@ -744,7 +770,11 @@ function retryFailed() {
     const slugs = [...state.failed.keys()];
     slugs.forEach(s => { state.failed.delete(s); state.raw.delete(s); });
     // Drop cached copies so a retry really goes to the network.
-    slugs.forEach(s => { try { localStorage.removeItem(fixturesCacheKey(s, state.start, state.end)); } catch {} });
+    slugs.forEach(s => {
+        for (let d = addDays(state.start, -1); d <= state.end; d = addDays(d, 1)) {
+            try { localStorage.removeItem(fixturesCacheKey(s, d)); } catch {}
+        }
+    });
     loadFixtures();
 }
 
