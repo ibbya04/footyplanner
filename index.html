@@ -314,8 +314,8 @@
     <div class="map-tools">
         <select id="tileSelect" aria-label="Map style">
             <option value="dark">Dark</option>
-            <option value="voyager">Light</option>
-            <option value="osm">OpenStreetMap</option>
+            <option value="light">Light</option>
+            <option value="street">Streets</option>
             <option value="satellite">Satellite</option>
         </select>
         <button id="fitBtn" type="button" title="Zoom to all listed matches">Fit matches</button>
@@ -398,22 +398,28 @@ const COUNTRY_TZ = {
 const DEFAULT_TZ = 'Europe/Paris'; // Central European Time covers the rest of the continent.
 const MY_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+// Esri basemaps need no API key and work even when the page is opened as a local file.
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
+const ESRI_ATTR = 'Tiles &copy; <a href="https://www.esri.com">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors';
 const TILES = {
     dark: {
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        options: { subdomains: 'abcd', maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' },
+        url: `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+        labels: `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+        options: { maxNativeZoom: 16, maxZoom: 19, attribution: ESRI_ATTR },
     },
-    voyager: {
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        options: { subdomains: 'abcd', maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' },
+    light: {
+        url: `${ESRI}/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+        labels: `${ESRI}/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+        options: { maxNativeZoom: 16, maxZoom: 19, attribution: ESRI_ATTR },
     },
-    osm: {
-        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        options: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' },
+    street: {
+        url: `${ESRI}/World_Street_Map/MapServer/tile/{z}/{y}/{x}`,
+        options: { maxZoom: 19, attribution: ESRI_ATTR },
     },
     satellite: {
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        options: { maxZoom: 19, attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics' },
+        url: `${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
+        labels: `${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`,
+        options: { maxZoom: 19, attribution: 'Imagery &copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics' },
     },
 };
 
@@ -906,7 +912,9 @@ function renderList(list) {
         else if (state.inView) msg = 'No matches in the visible map area. Zoom out or untick “Only what\'s on the map”.';
         const allFailed = state.failed.size && state.failed.size === state.enabled.size;
         el.innerHTML = allFailed
-            ? `<div class="banner">Couldn't reach the fixtures feed. Check your connection, or ESPN may be blocking requests right now.<br><button class="chip" data-action="retry">Try again</button></div>`
+            ? `<div class="banner">Couldn't reach the fixtures feed (${esc([...state.failed.values()][0])}).
+                ${location.protocol === 'file:' ? 'Some browsers block requests from pages opened as local files. Try serving the folder instead, e.g. <code>python3 -m http.server</code> and open http://localhost:8000.' : 'Check your connection, or ESPN may be blocking requests right now.'}
+                <br><button class="chip" data-action="retry">Try again</button></div>`
             : `<div class="empty"><strong>No games found</strong>${msg}</div>`;
         return;
     }
@@ -1080,12 +1088,22 @@ function fitToMatches() {
     if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 11 });
 }
 
+function setTiles(key) {
+    const t = TILES[key];
+    if (tileLayer) map.removeLayer(tileLayer);
+    // Base and label layers go in one group so they swap together; labels sit above the base.
+    tileLayer = L.layerGroup([
+        L.tileLayer(t.url, t.options),
+        ...(t.labels ? [L.tileLayer(t.labels, { ...t.options, attribution: '' })] : []),
+    ]).addTo(map);
+}
+
 function initMap() {
     map = L.map('map', { zoomControl: false, worldCopyJump: true }).setView([49, 8], 5);
     L.control.zoom({ position: 'topright' }).addTo(map);
     const tileKey = TILES[store.get('fp:tiles', 'dark')] ? store.get('fp:tiles', 'dark') : 'dark';
     $('tileSelect').value = tileKey;
-    tileLayer = L.tileLayer(TILES[tileKey].url, TILES[tileKey].options).addTo(map);
+    setTiles(tileKey);
 
     cluster = L.markerClusterGroup({
         maxClusterRadius: 45,
@@ -1096,9 +1114,7 @@ function initMap() {
     }).addTo(map);
 
     $('tileSelect').addEventListener('change', e => {
-        const t = TILES[e.target.value];
-        map.removeLayer(tileLayer);
-        tileLayer = L.tileLayer(t.url, t.options).addTo(map);
+        setTiles(e.target.value);
         store.set('fp:tiles', e.target.value);
     });
     map.on('moveend', () => { if (state.inView) scheduleRender(); });
