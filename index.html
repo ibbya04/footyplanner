@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0b1120">
+    <title>Footy Planner</title>
+    <meta name="description" content="See which football matches are on across Europe while you travel.">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <style>
+        :root {
+            --bg: #0b1120;
+            --panel: #111a2e;
+            --panel-2: #172238;
+            --line: #26324a;
+            --text: #e6ebf3;
+            --muted: #8b97ad;
+            --faint: #5d6a82;
+            --accent: #10b981;
+            --accent-ink: #052e22;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --live: #f43f5e;
+            --radius: 10px;
+            --sidebar: 400px;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            overflow: hidden;
+        }
+        button, input, select { font: inherit; color: inherit; }
+        button { cursor: pointer; }
+        a { color: var(--accent); }
+
+        /* ---------- Layout ---------- */
+        .sidebar {
+            width: var(--sidebar);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--panel);
+            border-right: 1px solid var(--line);
+            min-height: 0;
+            z-index: 2;
+        }
+        .map-wrap { flex: 1; position: relative; min-width: 0; }
+        #map { position: absolute; inset: 0; background: #0f172a; }
+
+        header.brand {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 16px 12px;
+            border-bottom: 1px solid var(--line);
+        }
+        .brand-logo {
+            width: 34px; height: 34px; border-radius: 9px;
+            display: grid; place-items: center;
+            background: rgba(16,185,129,.12); color: var(--accent);
+        }
+        .brand h1 { font-size: 17px; margin: 0; letter-spacing: -.01em; }
+        .brand h1 span { color: var(--accent); }
+        .brand p { margin: 1px 0 0; font-size: 12px; color: var(--muted); }
+
+        .controls { padding: 12px 16px; border-bottom: 1px solid var(--line); display: grid; gap: 12px; }
+        .label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .label .link-btn { text-transform: none; letter-spacing: 0; font-weight: 500; }
+        .row { display: flex; gap: 8px; }
+        .row > * { flex: 1; min-width: 0; }
+        .field {
+            width: 100%;
+            background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+            padding: 7px 9px; font-size: 13px; outline: none;
+            color-scheme: dark;
+        }
+        .field:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(16,185,129,.25); }
+        .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .chip {
+            border: 1px solid var(--line); background: var(--bg); color: var(--muted);
+            border-radius: 999px; padding: 3px 10px; font-size: 12px; white-space: nowrap;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .chip:hover { color: var(--text); border-color: #3a4864; }
+        .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+        .chip .n { opacity: .7; margin-left: 3px; font-variant-numeric: tabular-nums; }
+        .link-btn { background: none; border: 0; padding: 0; color: var(--muted); font-size: 12px; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; }
+        .link-btn:hover { color: var(--text); }
+
+        details.comps > summary { list-style: none; cursor: pointer; }
+        details.comps > summary::-webkit-details-marker { display: none; }
+        details.comps > summary .caret { transition: transform .15s; display: inline-block; }
+        details.comps[open] > summary .caret { transform: rotate(90deg); }
+        .comp-groups { display: grid; gap: 8px; margin-top: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+        .comp-group-title { font-size: 11px; color: var(--faint); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        .comp-group .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+        .comp-chip.on { background: color-mix(in srgb, var(--c) 22%, var(--bg)); border-color: var(--c); color: var(--text); font-weight: 500; }
+
+        .toggles { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+        .toggles label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+        .toggles input { accent-color: var(--accent); }
+        .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+        .seg button { border: 0; background: var(--bg); color: var(--muted); padding: 3px 9px; font-size: 12px; }
+        .seg button.on { background: var(--panel-2); color: var(--text); }
+
+        .status {
+            padding: 8px 16px; font-size: 12px; color: var(--muted);
+            border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            min-height: 36px;
+        }
+        .status .count { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .status .err { color: var(--warn); }
+        .spinner { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; vertical-align: -2px; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .days { display: flex; gap: 6px; overflow-x: auto; padding: 8px 16px; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+        .days:empty { display: none; }
+
+        .list { flex: 1; overflow-y: auto; padding: 4px 12px 16px; min-height: 0; }
+        .day-head {
+            position: sticky; top: 0; z-index: 1;
+            background: var(--panel); padding: 10px 4px 6px;
+            font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em;
+            display: flex; justify-content: space-between;
+        }
+        .day-head span:last-child { font-weight: 500; color: var(--faint); }
+        .card {
+            display: block; width: 100%; text-align: left;
+            background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--c);
+            border-radius: var(--radius); padding: 9px 11px; margin-bottom: 7px;
+            transition: border-color .15s, background .15s;
+        }
+        .card:hover, .card:focus-visible { border-color: #3a4864; border-left-color: var(--c); background: #1b2842; outline: none; }
+        .card.sel { border-color: var(--accent); border-left-color: var(--c); }
+        .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+        .comp-tag { font-weight: 700; letter-spacing: .03em; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .when { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .when .alt { color: var(--faint); margin-left: 4px; }
+        .teams { display: grid; gap: 3px; }
+        .team { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13.5px; }
+        .team img, .team .crest { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+        .team .crest { border-radius: 50%; background: var(--line); }
+        .team .name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .team .score { font-variant-numeric: tabular-nums; min-width: 14px; text-align: right; }
+        .team.lost { color: var(--muted); font-weight: 500; }
+        .card-bottom { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+        .card-bottom .venue { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nomap { color: var(--faint); font-style: italic; white-space: nowrap; }
+        .pill { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; letter-spacing: .03em; white-space: nowrap; }
+        .pill.live { background: var(--live); color: #fff; }
+        .pill.ft { background: var(--line); color: var(--text); }
+        .pill.pp { background: rgba(245,158,11,.18); color: var(--warn); }
+        .pill.tbc { background: rgba(139,151,173,.15); color: var(--muted); }
+
+        .empty { text-align: center; padding: 32px 16px; color: var(--muted); }
+        .empty strong { color: var(--text); display: block; margin-bottom: 4px; }
+        .banner { margin: 10px 4px; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.35); color: #fcd9a0; }
+        .banner button { margin-top: 6px; }
+
+        footer.foot { padding: 8px 16px; font-size: 11px; color: var(--faint); border-top: 1px solid var(--line); }
+        footer.foot a { color: var(--muted); }
+
+        /* ---------- Map ---------- */
+        .map-tools {
+            position: absolute; top: 12px; left: 12px; z-index: 500;
+            display: flex; gap: 6px; flex-wrap: wrap;
+        }
+        .map-tools select, .map-tools button {
+            background: rgba(17,26,46,.92); border: 1px solid var(--line); border-radius: 8px;
+            padding: 6px 9px; font-size: 12px; backdrop-filter: blur(6px);
+        }
+        .legend {
+            position: absolute; right: 12px; bottom: 26px; z-index: 500;
+            background: rgba(17,26,46,.92); border: 1px solid var(--line); border-radius: 10px;
+            padding: 8px 10px; font-size: 11.5px; display: grid; gap: 3px; backdrop-filter: blur(6px);
+        }
+        .legend div { display: flex; align-items: center; gap: 6px; }
+
+        .pin {
+            transform: translate(-50%, -50%);
+            position: absolute; left: 0; top: 0;
+            background: var(--c); color: #fff;
+            font-size: 10px; font-weight: 800; letter-spacing: .02em;
+            padding: 3px 6px; border-radius: 999px; white-space: nowrap;
+            border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.45);
+            line-height: 1.1;
+        }
+        .pin.live { box-shadow: 0 0 0 3px rgba(244,63,94,.55), 0 2px 8px rgba(0,0,0,.45); }
+        .pin.approx { border-style: dashed; }
+        .leaflet-marker-icon.pin-icon { background: none; border: 0; }
+        .leaflet-marker-icon.pin-icon:hover { z-index: 10000 !important; }
+        .cluster {
+            background: rgba(16,185,129,.25); border-radius: 50%;
+            display: grid; place-items: center;
+        }
+        .cluster div {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: var(--accent); color: var(--accent-ink);
+            display: grid; place-items: center; font-weight: 800; font-size: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.4);
+        }
+
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+        .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; }
+        .leaflet-popup-content { margin: 0; width: 260px !important; font-size: 13px; }
+        .leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+        .pop-head { background: var(--c); color: #fff; padding: 7px 12px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 8px; padding-right: 30px; }
+        .pop-body { padding: 10px 12px 12px; display: grid; gap: 8px; }
+        .pop-body .teams .team { font-size: 14px; }
+        .pop-meta { font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+        .pop-meta b { color: var(--text); font-weight: 600; }
+        .pop-links { display: flex; gap: 12px; font-size: 12px; }
+        .leaflet-container { font: inherit; }
+        .leaflet-control-attribution { background: rgba(11,17,32,.75) !important; color: var(--muted) !important; }
+        .leaflet-control-attribution a { color: var(--text) !important; }
+        .leaflet-bar a { background: var(--panel); color: var(--text); border-color: var(--line); }
+        .leaflet-bar a:hover { background: var(--panel-2); color: var(--text); }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+        .view-switch { display: none; }
+
+        /* ---------- Mobile ---------- */
+        @media (max-width: 800px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; flex: 1; border-right: 0; }
+            .map-wrap { flex: 1; }
+            body[data-view="list"] .map-wrap { display: none; }
+            body[data-view="map"] .sidebar { display: none; }
+            .legend { display: none; }
+            .view-switch {
+                display: flex; position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+                z-index: 1000; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px;
+                box-shadow: 0 6px 20px rgba(0,0,0,.5);
+            }
+            .view-switch button { border: 0; background: none; color: var(--muted); padding: 7px 18px; border-radius: 999px; font-weight: 600; }
+            .view-switch button.on { background: var(--accent); color: var(--accent-ink); }
+            footer.foot { padding-bottom: 72px; }
+            .comp-groups { max-height: 200px; }
+        }
+    </style>
+</head>
+<body data-view="list">
+
+<aside class="sidebar">
+    <header class="brand">
+        <div class="brand-logo" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+        </div>
+        <div>
+            <h1>Footy<span>Planner</span></h1>
+            <p>Which games are on where you're going</p>
+        </div>
+    </header>
+
+    <section class="controls">
+        <div>
+            <div class="label">Dates</div>
+            <div class="row">
+                <input type="date" id="startDate" class="field" aria-label="From">
+                <input type="date" id="endDate" class="field" aria-label="To">
+            </div>
+            <div class="presets" id="presets">
+                <button class="chip" data-preset="weekend">This weekend</button>
+                <button class="chip" data-preset="7">Next 7 days</button>
+                <button class="chip" data-preset="14">Next 14 days</button>
+                <button class="chip" data-preset="30">Next 30 days</button>
+            </div>
+        </div>
+
+        <details class="comps" id="compsDetails">
+            <summary class="label"><span><span class="caret">▸</span> Competitions <span id="compSummary" style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)"></span></span>
+                <span>
+                    <button class="link-btn" id="compAll" type="button">All</button> ·
+                    <button class="link-btn" id="compBig" type="button">Big 5 + UEFA</button>
+                </span>
+            </summary>
+            <div class="comp-groups" id="compGroups"></div>
+        </details>
+
+        <div class="row" style="align-items:center">
+            <input type="search" id="search" class="field" placeholder="Search team, city or stadium…" autocomplete="off">
+        </div>
+
+        <div class="toggles">
+            <label title="Only list matches inside the visible map area"><input type="checkbox" id="inView"> Only what's on the map</label>
+            <span>Times: <span class="seg" id="tzSeg">
+                <button data-tz="venue" title="Kick-off in the stadium's local time">Local</button><button data-tz="mine" title="Kick-off in your device's time zone">Mine</button>
+            </span></span>
+        </div>
+    </section>
+
+    <div class="status" id="status"></div>
+    <div class="days" id="days"></div>
+    <div class="list" id="list" aria-live="polite"></div>
+
+    <footer class="foot">
+        Fixtures: <a href="https://www.espn.com/soccer/" target="_blank" rel="noopener">ESPN</a> (unofficial feed) · Locations: <a href="https://photon.komoot.io" target="_blank" rel="noopener">Photon</a>/OpenStreetMap. Always double-check kick-off times before booking.
+    </footer>
+</aside>
+
+<main class="map-wrap">
+    <div id="map"></div>
+    <div class="map-tools">
+        <select id="tileSelect" aria-label="Map style">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="street">Streets</option>
+            <option value="satellite">Satellite</option>
+        </select>
+        <button id="fitBtn" type="button" title="Zoom to all listed matches">Fit matches</button>
+    </div>
+    <div class="legend" id="legend"></div>
+</main>
+
+<nav class="view-switch" aria-label="View">
+    <button data-view="list" class="on">List</button>
+    <button data-view="map">Map</button>
+</nav>
+
+<script>
+'use strict';
+
+/* =====================================================================
+ * Config
+ * =================================================================== */
+
+// Colour per country/group; competitions inherit their group's colour.
+const GROUPS = {
+    uefa:  { name: 'UEFA',        color: '#06b6d4' },
+    eng:   { name: 'England',     color: '#a855f7' },
+    esp:   { name: 'Spain',       color: '#f59e0b' },
+    ita:   { name: 'Italy',       color: '#3b82f6' },
+    ger:   { name: 'Germany',     color: '#ef4444' },
+    fra:   { name: 'France',      color: '#6366f1' },
+    other: { name: 'Rest of Europe', color: '#10b981' },
+};
+
+// ESPN league slugs. `big` marks the default "Big 5 + UEFA" selection.
+const COMPETITIONS = [
+    { slug: 'uefa.champions',      short: 'UCL',  name: 'Champions League',      group: 'uefa', big: true },
+    { slug: 'uefa.europa',         short: 'UEL',  name: 'Europa League',         group: 'uefa', big: true },
+    { slug: 'uefa.europa.conf',    short: 'UECL', name: 'Conference League',     group: 'uefa', big: true },
+    { slug: 'uefa.nations',        short: 'UNL',  name: 'Nations League',        group: 'uefa' },
+    { slug: 'uefa.euroq',          short: 'EQ',   name: 'Euro Qualifying',       group: 'uefa' },
+    { slug: 'eng.1',               short: 'PL',   name: 'Premier League',        group: 'eng', big: true },
+    { slug: 'eng.2',               short: 'CHA',  name: 'Championship',          group: 'eng' },
+    { slug: 'eng.fa',              short: 'FAC',  name: 'FA Cup',                group: 'eng' },
+    { slug: 'eng.league_cup',      short: 'EFL',  name: 'EFL Cup',               group: 'eng' },
+    { slug: 'esp.1',               short: 'LL',   name: 'La Liga',               group: 'esp', big: true },
+    { slug: 'esp.copa_del_rey',    short: 'CDR',  name: 'Copa del Rey',          group: 'esp' },
+    { slug: 'ita.1',               short: 'SA',   name: 'Serie A',               group: 'ita', big: true },
+    { slug: 'ita.coppa_italia',    short: 'CI',   name: 'Coppa Italia',          group: 'ita' },
+    { slug: 'ger.1',               short: 'BL',   name: 'Bundesliga',            group: 'ger', big: true },
+    { slug: 'ger.dfb_pokal',       short: 'DFB',  name: 'DFB-Pokal',             group: 'ger' },
+    { slug: 'fra.1',               short: 'L1',   name: 'Ligue 1',               group: 'fra', big: true },
+    { slug: 'fra.coupe_de_france', short: 'CDF',  name: 'Coupe de France',       group: 'fra' },
+    { slug: 'ned.1',               short: 'ERE',  name: 'Eredivisie',            group: 'other' },
+    { slug: 'por.1',               short: 'POR',  name: 'Primeira Liga',         group: 'other' },
+    { slug: 'sco.1',               short: 'SPL',  name: 'Scottish Premiership',  group: 'other' },
+    { slug: 'bel.1',               short: 'BEL',  name: 'Belgian Pro League',    group: 'other' },
+    { slug: 'tur.1',               short: 'TUR',  name: 'Süper Lig',             group: 'other' },
+    { slug: 'aut.1',               short: 'AUT',  name: 'Austrian Bundesliga',   group: 'other' },
+    { slug: 'sui.1',               short: 'SUI',  name: 'Swiss Super League',    group: 'other' },
+    { slug: 'den.1',               short: 'DEN',  name: 'Danish Superliga',      group: 'other' },
+    { slug: 'gre.1',               short: 'GRE',  name: 'Greek Super League',    group: 'other' },
+];
+const COMP_BY_SLUG = Object.fromEntries(COMPETITIONS.map(c => [c.slug, c]));
+
+const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
+const PHOTON = 'https://photon.komoot.io/api/';
+const MAX_RANGE_DAYS = 31;
+const FETCH_CONCURRENCY = 6;
+const GEOCODE_CONCURRENCY = 3;
+
+// Kick-offs are shown in the stadium's time zone, which we infer from the country ESPN gives us.
+const COUNTRY_TZ = {
+    'england': 'Europe/London', 'scotland': 'Europe/London', 'wales': 'Europe/London', 'northern ireland': 'Europe/London',
+    'united kingdom': 'Europe/London', 'uk': 'Europe/London', 'ireland': 'Europe/Dublin', 'republic of ireland': 'Europe/Dublin',
+    'portugal': 'Europe/Lisbon', 'iceland': 'Atlantic/Reykjavik', 'faroe islands': 'Atlantic/Faroe',
+    'turkey': 'Europe/Istanbul', 'türkiye': 'Europe/Istanbul', 'turkiye': 'Europe/Istanbul',
+    'greece': 'Europe/Athens', 'cyprus': 'Asia/Nicosia', 'romania': 'Europe/Bucharest', 'bulgaria': 'Europe/Sofia',
+    'ukraine': 'Europe/Kyiv', 'moldova': 'Europe/Chisinau', 'finland': 'Europe/Helsinki', 'estonia': 'Europe/Tallinn',
+    'latvia': 'Europe/Riga', 'lithuania': 'Europe/Vilnius', 'israel': 'Asia/Jerusalem', 'russia': 'Europe/Moscow',
+    'belarus': 'Europe/Minsk', 'georgia': 'Asia/Tbilisi', 'armenia': 'Asia/Yerevan', 'azerbaijan': 'Asia/Baku',
+    'kazakhstan': 'Asia/Almaty',
+};
+const DEFAULT_TZ = 'Europe/Paris'; // Central European Time covers the rest of the continent.
+const MY_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Esri basemaps need no API key and work even when the page is opened as a local file.
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
+const ESRI_ATTR = 'Tiles &copy; <a href="https://www.esri.com">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors';
+const TILES = {
+    dark: {
+        url: `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+        labels: `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+        options: { maxNativeZoom: 16, maxZoom: 19, attribution: ESRI_ATTR },
+    },
+    light: {
+        url: `${ESRI}/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+        labels: `${ESRI}/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+        options: { maxNativeZoom: 16, maxZoom: 19, attribution: ESRI_ATTR },
+    },
+    street: {
+        url: `${ESRI}/World_Street_Map/MapServer/tile/{z}/{y}/{x}`,
+        options: { maxZoom: 19, attribution: ESRI_ATTR },
+    },
+    satellite: {
+        url: `${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
+        labels: `${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`,
+        options: { maxZoom: 19, attribution: 'Imagery &copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics' },
+    },
+};
+
+/* =====================================================================
+ * Small helpers
+ * =================================================================== */
+
+const $ = id => document.getElementById(id);
+
+function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+const store = {
+    get(key, fallback) {
+        try { const raw = localStorage.getItem(key); return raw == null ? fallback : JSON.parse(raw); }
+        catch { return fallback; }
+    },
+    set(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full or blocked */ }
+    },
+};
+
+// Dates in the UI are plain calendar days ("YYYY-MM-DD"), never parsed as UTC instants.
+function isoDay(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+function addDays(day, n) {
+    const [y, m, d] = day.split('-').map(Number);
+    return isoDay(new Date(y, m - 1, d + n));
+}
+function dayDiff(a, b) {
+    const [ay, am, ad] = a.split('-').map(Number);
+    const [by, bm, bd] = b.split('-').map(Number);
+    return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86400000);
+}
+function formatDayLabel(day) {
+    const [y, m, d] = day.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+const dayFmtCache = new Map();
+function dayInZone(date, tz) {
+    if (!dayFmtCache.has(tz)) dayFmtCache.set(tz, new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }));
+    return dayFmtCache.get(tz).format(date);
+}
+function timeInZone(date, tz) {
+    return date.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
+}
+function zoneAbbr(date, tz) {
+    const part = new Intl.DateTimeFormat('en-GB', { timeZone: tz, timeZoneName: 'short' }).formatToParts(date).find(p => p.type === 'timeZoneName');
+    return part ? part.value : '';
+}
+
+function venueTimeZone(country, lng) {
+    const key = (country || '').trim().toLowerCase();
+    if (key === 'spain' && lng != null && lng < -12) return 'Atlantic/Canary';
+    if (key === 'portugal' && lng != null && lng < -20) return 'Atlantic/Azores';
+    return COUNTRY_TZ[key] || DEFAULT_TZ;
+}
+
+async function runPool(items, limit, worker) {
+    let i = 0;
+    const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+        while (i < items.length) {
+            const item = items[i++];
+            await worker(item);
+        }
+    });
+    await Promise.all(runners);
+}
+
+/* =====================================================================
+ * ESPN fixtures
+ * =================================================================== */
+
+// Turns one ESPN scoreboard event into the shape the UI uses. Returns null if it isn't a usable match.
+function normalizeEvent(ev, comp) {
+    const c = ev.competitions && ev.competitions[0];
+    if (!c || !Array.isArray(c.competitors)) return null;
+    const home = c.competitors.find(t => t.homeAway === 'home') || c.competitors[0];
+    const away = c.competitors.find(t => t.homeAway === 'away') || c.competitors[1];
+    if (!home || !away) return null;
+
+    const kickoff = new Date(c.date || ev.date);
+    if (isNaN(kickoff)) return null;
+
+    const type = (ev.status && ev.status.type) || (c.status && c.status.type) || {};
+    const venue = c.venue || ev.venue || {};
+    const address = venue.address || {};
+
+    const side = t => ({
+        name: (t.team && (t.team.displayName || t.team.name)) || 'TBD',
+        short: (t.team && (t.team.shortDisplayName || t.team.abbreviation)) || '',
+        logo: (t.team && (t.team.logo || (t.team.logos && t.team.logos[0] && t.team.logos[0].href))) || '',
+        score: t.score != null && t.score !== '' ? String(typeof t.score === 'object' ? t.score.displayValue ?? t.score.value : t.score) : '',
+        winner: t.winner === true,
+    });
+
+    const link = (ev.links || []).find(l => (l.rel || []).includes('summary')) || (ev.links || [])[0];
+
+    return {
+        id: `${comp.slug}:${ev.id}`,
+        comp,
+        kickoff,
+        timeValid: c.timeValid !== false && ev.timeValid !== false,
+        state: type.state || 'pre', // pre | in | post
+        statusName: type.name || '',
+        statusShort: type.shortDetail || type.detail || '',
+        home: side(home),
+        away: side(away),
+        neutral: c.neutralSite === true,
+        venue: {
+            name: venue.fullName || venue.displayName || '',
+            city: address.city || '',
+            country: address.country || '',
+        },
+        link: link ? link.href : '',
+    };
+}
+
+function fixturesCacheKey(slug, start, end) { return `fp:fx:${slug}:${start}:${end}`; }
+
+async function fetchCompetition(comp, start, end) {
+    const key = fixturesCacheKey(comp.slug, start, end);
+    const today = isoDay(new Date());
+    const includesToday = start <= today && today <= end;
+    const ttl = includesToday ? 10 * 60e3 : 6 * 3600e3; // keep live scores fresh
+    const cached = store.get(key, null);
+    if (cached && Date.now() - cached.t < ttl) return cached.events;
+
+    // ESPN's day boundaries aren't European ones, so pad a day each side and trim later by local date.
+    const from = addDays(start, -1).replaceAll('-', '');
+    const to = addDays(end, 1).replaceAll('-', '');
+    const url = `${ESPN_BASE}/${comp.slug}/scoreboard?dates=${from}-${to}&limit=500`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`ESPN ${res.status}`);
+    const data = await res.json();
+    const events = Array.isArray(data.events) ? data.events : [];
+    store.set(key, { t: Date.now(), events });
+    return events;
+}
+
+function pruneFixtureCache() {
+    try {
+        const cutoff = Date.now() - 24 * 3600e3;
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (!k || !k.startsWith('fp:fx:')) continue;
+            const v = store.get(k, null);
+            if (!v || v.t < cutoff) localStorage.removeItem(k);
+        }
+    } catch { /* ignore */ }
+}
+
+/* =====================================================================
+ * Venue geocoding (Photon / OpenStreetMap), cached forever in localStorage
+ * =================================================================== */
+
+const GEO_KEY = 'fp:geo:v1';
+const geoCache = store.get(GEO_KEY, {});
+const geoInflight = new Map();
+const geoQueue = [];
+let geoActive = 0;
+let geoSaveTimer = null;
+
+function saveGeo() {
+    clearTimeout(geoSaveTimer);
+    geoSaveTimer = setTimeout(() => store.set(GEO_KEY, geoCache), 500);
+}
+
+function venueKey(v) { return `v|${v.name}|${v.city}|${v.country}`.toLowerCase(); }
+function cityKey(v) { return `c|${v.city}|${v.country}`.toLowerCase(); }
+
+// A cached miss is retried after a week, in case the venue was added to OSM since.
+function cachedGeo(key) {
+    const hit = geoCache[key];
+    if (!hit) return undefined;
+    if (hit.miss && Date.now() - hit.t > 7 * 86400e3) return undefined;
+    return hit;
+}
+
+function locationFor(venue) {
+    if (!venue.name && !venue.city) return null;
+    const hit = cachedGeo(venueKey(venue));
+    return hit && !hit.miss ? hit : null;
+}
+
+function photon(params) {
+    return new Promise((resolve, reject) => {
+        geoQueue.push({ params, resolve, reject });
+        pumpGeoQueue();
+    });
+}
+function pumpGeoQueue() {
+    while (geoActive < GEOCODE_CONCURRENCY && geoQueue.length) {
+        const { params, resolve, reject } = geoQueue.shift();
+        geoActive++;
+        const qs = new URLSearchParams({ lang: 'en', ...params });
+        fetch(`${PHOTON}?${qs}`)
+            .then(r => { if (!r.ok) throw new Error(`Photon ${r.status}`); return r.json(); })
+            .then(d => resolve(Array.isArray(d.features) ? d.features : []), reject)
+            .finally(() => { geoActive--; pumpGeoQueue(); });
+    }
+}
+
+function distanceKm(a, b) {
+    const R = 6371, toRad = x => x * Math.PI / 180;
+    const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+}
+const featPoint = f => ({ lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] });
+
+async function geocodeCity(venue) {
+    const key = cityKey(venue);
+    const hit = cachedGeo(key);
+    if (hit !== undefined) return hit.miss ? null : hit;
+    const feats = await photon({ q: `${venue.city}${venue.country ? ', ' + venue.country : ''}`, osm_tag: 'place', limit: '1' });
+    const result = feats.length ? { ...featPoint(feats[0]), precision: 'city' } : null;
+    geoCache[key] = result || { miss: true, t: Date.now() };
+    saveGeo();
+    return result;
+}
+
+// Finds a stadium near its city; falls back to the city centre when OSM can't place the ground.
+async function geocodeVenue(venue) {
+    const key = venueKey(venue);
+    const hit = cachedGeo(key);
+    if (hit !== undefined) return hit.miss ? null : hit;
+    if (geoInflight.has(key)) return geoInflight.get(key);
+
+    const job = (async () => {
+        let result = null;
+        try {
+            const city = venue.city ? await geocodeCity(venue) : null;
+            if (venue.name) {
+                const params = { q: venue.name, osm_tag: 'leisure:stadium', limit: '5' };
+                if (city) Object.assign(params, { lat: city.lat, lon: city.lng });
+                else if (venue.country) params.q = `${venue.name} ${venue.country}`;
+                const feats = await photon(params);
+                const best = feats
+                    .map(f => ({ p: featPoint(f), d: city ? distanceKm(city, featPoint(f)) : 0 }))
+                    .filter(x => !city || x.d < 40)
+                    .sort((a, b) => a.d - b.d)[0];
+                if (best) result = { ...best.p, precision: 'stadium' };
+            }
+            if (!result && city) result = { lat: city.lat, lng: city.lng, precision: 'city' };
+            geoCache[key] = result || { miss: true, t: Date.now() };
+            saveGeo();
+        } catch (err) {
+            console.warn('Geocoding failed for', venue, err); // network error: don't cache, try again next load
+        }
+        geoInflight.delete(key);
+        return result;
+    })();
+    geoInflight.set(key, job);
+    return job;
+}
+
+/* =====================================================================
+ * State
+ * =================================================================== */
+
+const state = {
+    start: '',
+    end: '',
+    enabled: new Set(store.get('fp:comps', COMPETITIONS.filter(c => c.big).map(c => c.slug)).filter(s => COMP_BY_SLUG[s])),
+    raw: new Map(),        // slug -> ESPN events for the current range
+    loading: new Set(),
+    failed: new Map(),     // slug -> error message
+    day: null,             // selected day chip, or null for all
+    search: '',
+    inView: store.get('fp:inView', false),
+    tzMode: store.get('fp:tz', 'venue'),
+    selectedId: null,
+    loadToken: 0,
+    geocodePending: 0,
+};
+
+let map, cluster, tileLayer;
+const markerById = new Map();
+
+/* =====================================================================
+ * Data loading
+ * =================================================================== */
+
+async function loadFixtures() {
+    const token = ++state.loadToken;
+    const { start, end } = state;
+    const todo = COMPETITIONS.filter(c => state.enabled.has(c.slug) && !state.raw.has(c.slug));
+    todo.forEach(c => { state.loading.add(c.slug); state.failed.delete(c.slug); });
+    render();
+
+    await runPool(todo, FETCH_CONCURRENCY, async comp => {
+        try {
+            const events = await fetchCompetition(comp, start, end);
+            if (token !== state.loadToken) return;
+            state.raw.set(comp.slug, events);
+        } catch (err) {
+            if (token !== state.loadToken) return;
+            state.failed.set(comp.slug, err.message || 'failed');
+        } finally {
+            if (token === state.loadToken) {
+                state.loading.delete(comp.slug);
+                scheduleRender();
+            }
+        }
+    });
+    if (token === state.loadToken) geocodeMissing();
+}
+
+function resetAndLoad() {
+    state.raw.clear();
+    state.failed.clear();
+    state.loading.clear();
+    state.day = null;
+    loadFixtures();
+}
+
+function retryFailed() {
+    const slugs = [...state.failed.keys()];
+    slugs.forEach(s => { state.failed.delete(s); state.raw.delete(s); });
+    // Drop cached copies so a retry really goes to the network.
+    slugs.forEach(s => { try { localStorage.removeItem(fixturesCacheKey(s, state.start, state.end)); } catch {} });
+    loadFixtures();
+}
+
+async function geocodeMissing() {
+    const seen = new Set();
+    const venues = [];
+    for (const m of allMatches()) {
+        if (!m.venue.name && !m.venue.city) continue;
+        const k = venueKey(m.venue);
+        if (seen.has(k) || cachedGeo(k) !== undefined) continue;
+        seen.add(k);
+        venues.push(m.venue);
+    }
+    if (!venues.length) return;
+    state.geocodePending += venues.length;
+    renderStatus();
+    await Promise.all(venues.map(v => geocodeVenue(v).finally(() => {
+        state.geocodePending--;
+        scheduleRender();
+    })));
+}
+
+/* =====================================================================
+ * Derived data
+ * =================================================================== */
+
+function displayZone(m) {
+    return state.tzMode === 'mine' ? MY_TZ : m.tz;
+}
+
+function allMatches() {
+    const out = [];
+    const seen = new Set();
+    for (const [slug, events] of state.raw) {
+        const comp = COMP_BY_SLUG[slug];
+        if (!comp || !state.enabled.has(slug)) continue;
+        for (const ev of events) {
+            const m = normalizeEvent(ev, comp);
+            if (!m || seen.has(m.id)) continue;
+            seen.add(m.id);
+            m.loc = locationFor(m.venue);
+            m.tz = venueTimeZone(m.venue.country, m.loc && m.loc.lng);
+            // Keep only matches whose local calendar day falls in the chosen window.
+            m.localDay = dayInZone(m.kickoff, m.tz);
+            if (m.localDay < state.start || m.localDay > state.end) continue;
+            m.day = dayInZone(m.kickoff, displayZone(m));
+            out.push(m);
+        }
+    }
+    out.sort((a, b) => a.kickoff - b.kickoff || a.comp.short.localeCompare(b.comp.short));
+    return out;
+}
+
+function matchesSearch(m, q) {
+    if (!q) return true;
+    const hay = [m.home.name, m.away.name, m.home.short, m.away.short, m.venue.name, m.venue.city, m.venue.country, m.comp.name, m.comp.short]
+        .join(' ').toLowerCase();
+    return q.split(/\s+/).every(term => hay.includes(term));
+}
+
+function visibleMatches() {
+    const q = state.search.trim().toLowerCase();
+    const bounds = state.inView && map ? map.getBounds() : null;
+    const base = allMatches().filter(m => matchesSearch(m, q) && (!bounds || (m.loc && bounds.contains([m.loc.lat, m.loc.lng]))));
+    const dayCounts = new Map();
+    base.forEach(m => dayCounts.set(m.day, (dayCounts.get(m.day) || 0) + 1));
+    if (state.day && !dayCounts.has(state.day)) state.day = null;
+    const list = state.day ? base.filter(m => m.day === state.day) : base;
+    return { list, dayCounts };
+}
+
+/* =====================================================================
+ * Rendering
+ * =================================================================== */
+
+let renderQueued = false;
+function scheduleRender() {
+    if (renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(() => { renderQueued = false; render(); });
+}
+
+function render() {
+    const { list, dayCounts } = visibleMatches();
+    renderStatus(list.length);
+    renderDays(dayCounts);
+    renderList(list);
+    renderMarkers(list);
+}
+
+function renderStatus(count) {
+    const el = $('status');
+    const total = state.enabled.size;
+    const loading = state.loading.size;
+    const failed = state.failed.size;
+    const parts = [];
+    if (loading) parts.push(`<span><span class="spinner"></span>Loading ${total - loading}/${total} competitions…</span>`);
+    else if (count != null) parts.push(`<span><span class="count">${count}</span> ${count === 1 ? 'match' : 'matches'}</span>`);
+    const right = [];
+    if (state.geocodePending > 0) right.push(`<span><span class="spinner"></span>Placing ${state.geocodePending} stadiums</span>`);
+    if (failed) right.push(`<span class="err" title="${esc([...state.failed.keys()].map(s => COMP_BY_SLUG[s].name).join(', '))}">${failed} failed · <button class="link-btn" data-action="retry">retry</button></span>`);
+    el.innerHTML = `${parts.join('') || '<span></span>'}<span style="display:flex;gap:10px">${right.join('')}</span>`;
+}
+
+function renderDays(dayCounts) {
+    const el = $('days');
+    if (dayCounts.size < 2 && !state.day) { el.innerHTML = ''; return; }
+    const days = [...dayCounts.keys()].sort();
+    el.innerHTML = `<button class="chip ${state.day ? '' : 'on'}" data-day="">All days</button>` +
+        days.map(d => `<button class="chip ${state.day === d ? 'on' : ''}" data-day="${d}">${esc(formatDayLabel(d))}<span class="n">${dayCounts.get(d)}</span></button>`).join('');
+}
+
+function crest(team) {
+    return team.logo
+        ? `<img src="${esc(team.logo)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'crest'}))">`
+        : '<span class="crest"></span>';
+}
+
+function teamsHtml(m) {
+    const post = m.state === 'post' || m.state === 'in';
+    const row = (t, other) => {
+        const lost = m.state === 'post' && !t.winner && other.winner;
+        return `<div class="team ${lost ? 'lost' : ''}">${crest(t)}<span class="name">${esc(t.name)}</span>${post ? `<span class="score">${esc(t.score)}</span>` : ''}</div>`;
+    };
+    return `<div class="teams">${row(m.home, m.away)}${row(m.away, m.home)}</div>`;
+}
+
+function statusPill(m) {
+    const s = m.statusName;
+    if (s === 'STATUS_POSTPONED') return '<span class="pill pp">POSTPONED</span>';
+    if (s === 'STATUS_CANCELED' || s === 'STATUS_CANCELLED') return '<span class="pill pp">CANCELLED</span>';
+    if (s === 'STATUS_SUSPENDED' || s === 'STATUS_ABANDONED') return '<span class="pill pp">' + esc(s.replace('STATUS_', '')) + '</span>';
+    if (m.state === 'in') return `<span class="pill live">LIVE ${esc(m.statusShort)}</span>`;
+    if (m.state === 'post') return `<span class="pill ft">${esc(m.statusShort || 'FT')}</span>`;
+    if (!m.timeValid) return '<span class="pill tbc">TIME TBC</span>';
+    return '';
+}
+
+function whenHtml(m, withDay) {
+    const tz = displayZone(m);
+    const dayPart = withDay ? `${formatDayLabel(dayInZone(m.kickoff, tz))} · ` : '';
+    if (!m.timeValid) return `${esc(dayPart)}TBC`;
+    const main = `${dayPart}${timeInZone(m.kickoff, tz)}`;
+    // When showing venue time, also hint the user's own time if it differs.
+    let alt = '';
+    if (state.tzMode === 'venue' && timeInZone(m.kickoff, MY_TZ) !== timeInZone(m.kickoff, tz)) {
+        alt = ` <span class="alt">(${timeInZone(m.kickoff, MY_TZ)} yours)</span>`;
+    }
+    return `${esc(main)} <span class="alt">${esc(zoneAbbr(m.kickoff, tz))}</span>${alt}`;
+}
+
+function venueText(m) {
+    const v = m.venue;
+    const place = [v.city, v.country].filter(Boolean).join(', ');
+    return [v.name, place].filter(Boolean).join(' · ') || 'Venue TBC';
+}
+
+function renderList(list) {
+    const el = $('list');
+    if (!list.length) {
+        if (state.loading.size) { el.innerHTML = ''; return; }
+        let msg = 'No matches in these dates for the selected competitions.';
+        if (!state.enabled.size) msg = 'Pick at least one competition above.';
+        else if (state.search) msg = `Nothing matches “${esc(state.search)}”.`;
+        else if (state.inView) msg = 'No matches in the visible map area. Zoom out or untick “Only what\'s on the map”.';
+        const allFailed = state.failed.size && state.failed.size === state.enabled.size;
+        el.innerHTML = allFailed
+            ? `<div class="banner">Couldn't reach the fixtures feed (${esc([...state.failed.values()][0])}).
+                ${location.protocol === 'file:' ? 'Some browsers block requests from pages opened as local files. Try serving the folder instead, e.g. <code>python3 -m http.server</code> and open http://localhost:8000.' : 'Check your connection, or ESPN may be blocking requests right now.'}
+                <br><button class="chip" data-action="retry">Try again</button></div>`
+            : `<div class="empty"><strong>No games found</strong>${msg}</div>`;
+        return;
+    }
+
+    const groups = new Map();
+    list.forEach(m => { if (!groups.has(m.day)) groups.set(m.day, []); groups.get(m.day).push(m); });
+
+    let html = '';
+    for (const [day, matches] of groups) {
+        html += `<div class="day-head"><span>${esc(formatDayLabel(day))}</span><span>${matches.length}</span></div>`;
+        for (const m of matches) {
+            const color = GROUPS[m.comp.group].color;
+            html += `<button class="card ${m.id === state.selectedId ? 'sel' : ''}" style="--c:${color}" data-id="${esc(m.id)}">
+                <div class="card-top"><span class="comp-tag">${esc(m.comp.name)}</span><span class="when">${statusPill(m)} ${whenHtml(m, false)}</span></div>
+                ${teamsHtml(m)}
+                <div class="card-bottom"><span class="venue">${esc(venueText(m))}</span>${m.loc ? '' : '<span class="nomap">not on map</span>'}</div>
+            </button>`;
+        }
+    }
+    el.innerHTML = html;
+}
+
+function popupHtml(m) {
+    const color = GROUPS[m.comp.group].color;
+    const mapsUrl = m.loc
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${m.venue.name} ${m.venue.city}`.trim())}`
+        : '';
+    const pill = statusPill(m);
+    return `<div style="--c:${color}">
+        <div class="pop-head"><span>${esc(m.comp.name)}</span><span>${esc(m.venue.country)}</span></div>
+        <div class="pop-body">
+            ${teamsHtml(m)}
+            <div class="pop-meta">
+                <div>${pill ? pill + ' ' : ''}<b>${whenHtml(m, true)}</b></div>
+                <div>${esc(venueText(m))}${m.neutral ? ' (neutral venue)' : ''}</div>
+                ${m.loc && m.loc.precision === 'city' ? '<div style="color:var(--faint)">Pin shows the city; exact ground not found.</div>' : ''}
+            </div>
+            <div class="pop-links">
+                ${m.link ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Match centre ↗</a>` : ''}
+                ${mapsUrl ? `<a href="${esc(mapsUrl)}" target="_blank" rel="noopener">Directions ↗</a>` : ''}
+            </div>
+        </div>
+    </div>`;
+}
+
+function renderMarkers(list) {
+    if (!cluster) return;
+    // Only rebuild when the set of pins actually changes, so popups don't close on every render.
+    const signature = list.filter(m => m.loc).map(m => `${m.id}@${m.loc.lat},${m.loc.lng}:${m.state}:${m.home.score}-${m.away.score}:${state.tzMode}`).join('|');
+    if (signature === renderMarkers.last) return;
+    renderMarkers.last = signature;
+
+    const openId = [...markerById.entries()].find(([, mk]) => mk.isPopupOpen())?.[0];
+    cluster.clearLayers();
+    markerById.clear();
+
+    const markers = [];
+    for (const m of list) {
+        if (!m.loc) continue;
+        const color = GROUPS[m.comp.group].color;
+        const classes = ['pin', m.state === 'in' ? 'live' : '', m.loc.precision === 'city' ? 'approx' : ''].join(' ');
+        const icon = L.divIcon({
+            className: 'pin-icon',
+            html: `<div class="${classes}" style="--c:${color}">${esc(m.comp.short)}</div>`,
+            iconSize: [0, 0],
+        });
+        const marker = L.marker([m.loc.lat, m.loc.lng], { icon, title: `${m.home.name} v ${m.away.name}` })
+            .bindPopup(() => popupHtml(m), { maxWidth: 280, minWidth: 260 });
+        marker.on('click', () => selectCard(m.id, false));
+        markerById.set(m.id, marker);
+        markers.push(marker);
+    }
+    cluster.addLayers(markers);
+    if (openId && markerById.has(openId)) cluster.zoomToShowLayer(markerById.get(openId), () => markerById.get(openId).openPopup());
+}
+
+function renderLegend() {
+    const used = new Set(COMPETITIONS.filter(c => state.enabled.has(c.slug)).map(c => c.group));
+    $('legend').innerHTML = Object.entries(GROUPS).filter(([g]) => used.has(g))
+        .map(([, g]) => `<div><span class="dot" style="background:${g.color}"></span>${esc(g.name)}</div>`).join('')
+        + '<div style="color:var(--faint);margin-top:2px">Dashed pin = city, not exact ground</div>';
+}
+
+function renderCompPicker() {
+    const groups = Object.entries(GROUPS).map(([key, g]) => {
+        const chips = COMPETITIONS.filter(c => c.group === key).map(c =>
+            `<button type="button" class="chip comp-chip ${state.enabled.has(c.slug) ? 'on' : ''}" style="--c:${g.color}" data-slug="${c.slug}" title="${esc(c.name)}">${esc(c.name)}</button>`).join('');
+        return `<div class="comp-group"><div class="comp-group-title"><span class="dot" style="background:${g.color}"></span>${esc(g.name)}</div><div class="chips">${chips}</div></div>`;
+    }).join('');
+    $('compGroups').innerHTML = groups;
+    $('compSummary').textContent = `(${state.enabled.size} of ${COMPETITIONS.length})`;
+    renderLegend();
+}
+
+function renderPresets() {
+    const today = isoDay(new Date());
+    document.querySelectorAll('#presets .chip').forEach(btn => {
+        const [s, e] = presetRange(btn.dataset.preset, today);
+        btn.classList.toggle('on', s === state.start && e === state.end);
+    });
+}
+
+function renderTzSeg() {
+    document.querySelectorAll('#tzSeg button').forEach(b => b.classList.toggle('on', b.dataset.tz === state.tzMode));
+}
+
+/* =====================================================================
+ * Interaction
+ * =================================================================== */
+
+function presetRange(preset, today) {
+    if (preset === 'weekend') {
+        const [y, m, d] = today.split('-').map(Number);
+        const dow = new Date(y, m - 1, d).getDay(); // 0 Sun .. 6 Sat
+        if (dow === 0) return [today, today];
+        const fri = dow === 6 ? addDays(today, -1) : addDays(today, (5 - dow + 7) % 7);
+        const start = fri < today ? today : fri;
+        return [start, addDays(fri, 2)];
+    }
+    const n = Number(preset);
+    return [today, addDays(today, n - 1)];
+}
+
+function setRange(start, end, { load = true } = {}) {
+    if (!start || !end) return;
+    if (end < start) end = start;
+    if (dayDiff(start, end) + 1 > MAX_RANGE_DAYS) end = addDays(start, MAX_RANGE_DAYS - 1);
+    state.start = start;
+    state.end = end;
+    $('startDate').value = start;
+    $('endDate').value = end;
+    store.set('fp:range', { start, end, saved: isoDay(new Date()) });
+    renderPresets();
+    if (load) resetAndLoad();
+}
+
+function selectCard(id, fromList) {
+    state.selectedId = id;
+    document.querySelectorAll('.card.sel').forEach(c => c.classList.remove('sel'));
+    const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+    if (card) {
+        card.classList.add('sel');
+        if (!fromList) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+}
+
+function focusMatch(id) {
+    selectCard(id, true);
+    const marker = markerById.get(id);
+    if (!marker) return;
+    if (window.matchMedia('(max-width: 800px)').matches) setView('map');
+    cluster.zoomToShowLayer(marker, () => {
+        if (map.getZoom() < 11) map.setView(marker.getLatLng(), 11);
+        marker.openPopup();
+    });
+}
+
+function setView(view) {
+    document.body.dataset.view = view;
+    document.querySelectorAll('.view-switch button').forEach(b => b.classList.toggle('on', b.dataset.view === view));
+    if (view !== 'map') return;
+    setTimeout(() => {
+        map.invalidateSize();
+        // The map was sized while hidden on phones, so frame the matches the first time it's shown.
+        if (!setView.framed) { setView.framed = true; fitToMatches(); }
+    }, 0);
+}
+
+function fitToMatches() {
+    const pts = visibleMatches().list.filter(m => m.loc).map(m => [m.loc.lat, m.loc.lng]);
+    if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 11 });
+}
+
+function setTiles(key) {
+    const t = TILES[key];
+    if (tileLayer) map.removeLayer(tileLayer);
+    // Base and label layers go in one group so they swap together; labels sit above the base.
+    tileLayer = L.layerGroup([
+        L.tileLayer(t.url, t.options),
+        ...(t.labels ? [L.tileLayer(t.labels, { ...t.options, attribution: '' })] : []),
+    ]).addTo(map);
+}
+
+function initMap() {
+    map = L.map('map', { zoomControl: false, worldCopyJump: true }).setView([49, 8], 5);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    const tileKey = TILES[store.get('fp:tiles', 'dark')] ? store.get('fp:tiles', 'dark') : 'dark';
+    $('tileSelect').value = tileKey;
+    setTiles(tileKey);
+
+    cluster = L.markerClusterGroup({
+        maxClusterRadius: 45,
+        showCoverageOnHover: false,
+        spiderfyOnMaxZoom: true,
+        spiderfyDistanceMultiplier: 1.6,
+        iconCreateFunction: c => L.divIcon({ className: 'cluster', html: `<div>${c.getChildCount()}</div>`, iconSize: [40, 40] }),
+    }).addTo(map);
+
+    $('tileSelect').addEventListener('change', e => {
+        setTiles(e.target.value);
+        store.set('fp:tiles', e.target.value);
+    });
+    map.on('moveend', () => { if (state.inView) scheduleRender(); });
+    window.addEventListener('resize', () => map.invalidateSize());
+}
+
+function initControls() {
+    $('startDate').addEventListener('change', e => setRange(e.target.value, state.end < e.target.value ? e.target.value : state.end));
+    $('endDate').addEventListener('change', e => setRange(state.start > e.target.value ? e.target.value : state.start, e.target.value));
+    $('presets').addEventListener('click', e => {
+        const btn = e.target.closest('[data-preset]');
+        if (!btn) return;
+        const [s, en] = presetRange(btn.dataset.preset, isoDay(new Date()));
+        setRange(s, en);
+    });
+
+    $('compGroups').addEventListener('click', e => {
+        const btn = e.target.closest('[data-slug]');
+        if (!btn) return;
+        const slug = btn.dataset.slug;
+        if (state.enabled.has(slug)) state.enabled.delete(slug); else state.enabled.add(slug);
+        store.set('fp:comps', [...state.enabled]);
+        renderCompPicker();
+        loadFixtures(); // fetches only newly enabled competitions
+    });
+    const setComps = slugs => {
+        state.enabled = new Set(slugs);
+        store.set('fp:comps', [...state.enabled]);
+        renderCompPicker();
+        loadFixtures();
+    };
+    $('compAll').addEventListener('click', e => { e.preventDefault(); setComps(COMPETITIONS.map(c => c.slug)); });
+    $('compBig').addEventListener('click', e => { e.preventDefault(); setComps(COMPETITIONS.filter(c => c.big).map(c => c.slug)); });
+
+    let searchTimer;
+    $('search').addEventListener('input', e => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { state.search = e.target.value; render(); }, 120);
+    });
+
+    $('inView').checked = state.inView;
+    $('inView').addEventListener('change', e => { state.inView = e.target.checked; store.set('fp:inView', state.inView); render(); });
+
+    $('tzSeg').addEventListener('click', e => {
+        const btn = e.target.closest('[data-tz]');
+        if (!btn) return;
+        state.tzMode = btn.dataset.tz;
+        store.set('fp:tz', state.tzMode);
+        renderTzSeg();
+        render();
+    });
+
+    $('days').addEventListener('click', e => {
+        const btn = e.target.closest('[data-day]');
+        if (!btn) return;
+        state.day = btn.dataset.day || null;
+        render();
+    });
+
+    $('list').addEventListener('click', e => {
+        if (e.target.closest('[data-action="retry"]')) return retryFailed();
+        const card = e.target.closest('.card');
+        if (card) focusMatch(card.dataset.id);
+    });
+    $('status').addEventListener('click', e => { if (e.target.closest('[data-action="retry"]')) retryFailed(); });
+    $('fitBtn').addEventListener('click', fitToMatches);
+    document.querySelector('.view-switch').addEventListener('click', e => {
+        const btn = e.target.closest('[data-view]');
+        if (btn) setView(btn.dataset.view);
+    });
+}
+
+function init() {
+    if (typeof L === 'undefined' || !L.markerClusterGroup) {
+        $('list').innerHTML = '<div class="banner">The map library failed to load. Check your connection and reload.</div>';
+        return;
+    }
+    pruneFixtureCache();
+    initMap();
+    initControls();
+    renderCompPicker();
+    renderTzSeg();
+
+    // Restore the last range if it is still in the future; otherwise default to the next 14 days.
+    const today = isoDay(new Date());
+    const saved = store.get('fp:range', null);
+    if (saved && saved.end >= today) setRange(saved.start < today ? today : saved.start, saved.end, { load: false });
+    else setRange(...presetRange('14', today), { load: false });
+    loadFixtures();
+}
+
+init();
+</script>
+</body>
+</html>
