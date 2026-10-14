@@ -511,7 +511,7 @@ const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 const PHOTON = 'https://photon.komoot.io/api/';
 const MAX_RANGE_DAYS = 31;
 const FETCH_CONCURRENCY = 8;
-const GEOCODE_CONCURRENCY = 3;
+const GEOCODE_CONCURRENCY = 4;
 
 // Kick-offs are shown in the stadium's time zone, which we infer from the country ESPN gives us.
 const COUNTRY_TZ = {
@@ -679,7 +679,9 @@ function rememberLeagueLogo(slug, leagues) {
     if (!league) return;
     const logos = league.logos || [];
     const pick = logos.find(l => (l.rel || []).includes('default') && !(l.rel || []).includes('dark')) || logos[0];
-    const href = (pick && pick.href) || league.logo;
+    setLeagueLogo(slug, (pick && pick.href) || league.logo);
+}
+function setLeagueLogo(slug, href) {
     if (href && leagueLogos[slug] !== href) {
         leagueLogos[slug] = href;
         store.set('fp:logos', leagueLogos);
@@ -705,6 +707,31 @@ function slimEvent(ev) {
     };
 }
 
+/* ---------- Optional backend (Vercel functions in /api) ----------
+ * When the page is served over http(s) it first tries /api/day, which returns every selected
+ * competition for a day in one CDN-cached response. Without a backend (opened as a file, or a
+ * plain static server) it talks to ESPN and Photon directly, exactly as before. */
+const API_BASE = location.protocol.startsWith('http') ? 'api' : null;
+let apiMode = API_BASE ? 'unknown' : 'off'; // 'on' once a call succeeds; 'off' when there's no backend
+const dayRequests = new Map(); // memoised /api/day calls for the current load
+
+function fetchAllForDay(day) {
+    const comps = [...state.enabled].sort().join(',');
+    const key = `${day}|${comps}`;
+    if (!dayRequests.has(key)) {
+        const job = fetch(`${API_BASE}/day?date=${day}&comps=${encodeURIComponent(comps)}`).then(async res => {
+            const isJson = (res.headers.get('content-type') || '').includes('json');
+            if (res.status === 404 || !isJson) { apiMode = 'off'; throw new Error('no backend'); }
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            apiMode = 'on';
+            return res.json();
+        });
+        job.catch(() => dayRequests.delete(key)); // don't remember failures
+        dayRequests.set(key, job);
+    }
+    return dayRequests.get(key);
+}
+
 // ESPN's soccer scoreboard only accepts a single day (YYYYMMDD); ranges return 400.
 async function fetchDay(comp, day) {
     const key = fixturesCacheKey(comp.slug, day);
@@ -713,6 +740,20 @@ async function fetchDay(comp, day) {
     const ttl = age > 1 ? 7 * 86400e3 : age >= -1 ? 10 * 60e3 : 6 * 3600e3; // results are final; keep live scores fresh
     const cached = store.get(key, null);
     if (cached && Date.now() - cached.t < ttl) return cached.events;
+
+    if (apiMode !== 'off') {
+        try {
+            const data = await fetchAllForDay(day);
+            const entry = data.competitions && data.competitions[comp.slug];
+            if (entry) {
+                if (entry.logo) setLeagueLogo(comp.slug, entry.logo);
+                const events = (entry.events || []).map(slimEvent);
+                store.set(key, { t: Date.now(), events });
+                return events;
+            }
+            // The backend couldn't get this one; fall through and try ESPN directly.
+        } catch { /* backend missing or down: use ESPN directly */ }
+    }
 
     const res = await fetch(`${ESPN_BASE}/${comp.slug}/scoreboard?dates=${day.replaceAll('-', '')}`);
     if (!res.ok) throw new Error(`ESPN ${res.status}`);
@@ -1043,22 +1084,26 @@ function locationFor(venue) {
     return null;
 }
 
-function photon(params) {
+// All location lookups (Photon directly, or /api/venue) share one small queue to stay polite.
+function queuedJson(url) {
     return new Promise((resolve, reject) => {
-        geoQueue.push({ params, resolve, reject });
+        geoQueue.push({ url, resolve, reject });
         pumpGeoQueue();
     });
 }
 function pumpGeoQueue() {
     while (geoActive < GEOCODE_CONCURRENCY && geoQueue.length) {
-        const { params, resolve, reject } = geoQueue.shift();
+        const { url, resolve, reject } = geoQueue.shift();
         geoActive++;
-        const qs = new URLSearchParams({ lang: 'en', ...params });
-        fetch(`${PHOTON}?${qs}`)
-            .then(r => { if (!r.ok) throw new Error(`Photon ${r.status}`); return r.json(); })
-            .then(d => resolve(Array.isArray(d.features) ? d.features : []), reject)
+        fetch(url)
+            .then(r => { if (!r.ok) throw new Error(`${r.status} from ${url.split('?')[0]}`); return r.json(); })
+            .then(resolve, reject)
             .finally(() => { geoActive--; pumpGeoQueue(); });
     }
+}
+function photon(params) {
+    const qs = new URLSearchParams({ lang: 'en', ...params });
+    return queuedJson(`${PHOTON}?${qs}`).then(d => (Array.isArray(d.features) ? d.features : []));
 }
 
 function distanceKm(a, b) {
@@ -1089,6 +1134,18 @@ async function geocodeVenue(venue) {
 
     const job = (async () => {
         let result = null;
+        if (apiMode === 'on') {
+            // The backend does the same lookup and caches it on the CDN for everyone.
+            try {
+                const qs = new URLSearchParams({ name: venue.name, city: venue.city, country: venue.country });
+                const r = await queuedJson(`${API_BASE}/venue?${qs}`);
+                result = r && !r.miss ? { lat: r.lat, lng: r.lng, precision: r.precision } : null;
+                geoCache[key] = result || { miss: true, t: Date.now() };
+                saveGeo();
+                geoInflight.delete(key);
+                return result;
+            } catch { /* fall back to Photon directly */ }
+        }
         try {
             const city = venue.city ? await geocodeCity(venue) : null;
             if (venue.name) {
@@ -1150,6 +1207,7 @@ const markerById = new Map();
 
 async function loadFixtures() {
     const token = ++state.loadToken;
+    dayRequests.clear();
     // ESPN days follow US time, so a European kick-off can sit on the previous ESPN day.
     const days = [];
     for (let d = addDays(state.start, -1); d <= state.end; d = addDays(d, 1)) days.push(d);
@@ -1220,8 +1278,11 @@ async function geocodeMissing() {
     renderStatus();
 
     // Cities first: far fewer lookups (many clubs share one), and every match gets a provisional pin quickly.
+    // With the backend, venue lookups are usually instant CDN hits, so skip this step.
     const cities = new Map();
-    venues.filter(v => v.city && cachedGeo(cityKey(v)) === undefined).forEach(v => cities.set(cityKey(v), v));
+    if (apiMode !== 'on') {
+        venues.filter(v => v.city && cachedGeo(cityKey(v)) === undefined).forEach(v => cities.set(cityKey(v), v));
+    }
     await Promise.all([...cities.values()].map(v => geocodeCity(v).catch(() => null).finally(scheduleRender)));
 
     await Promise.all(venues.map(v => geocodeVenue(v).finally(() => {

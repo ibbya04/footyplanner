@@ -2,7 +2,7 @@
 
 A single-page map of the football matches on across Europe for a set of dates. You can use it to see which games you could get to while travelling.
 
-Open `index.html` in a browser. There's no build step, server or API key.
+Open `index.html` in a browser, or deploy it to Vercel (see below) for faster loads on your phone. No build step or API key.
 
 ## How it works
 
@@ -37,6 +37,25 @@ python3 scripts/build_venues.py
 
 It collects every team's home ground for each competition in `index.html`, plus the venues on the scoreboard for the next 14 days. It looks up the new ones on Photon and rewrites the `KNOWN_VENUES` block. Venues already in the table are kept, so re-runs are quick. `--refresh` looks everything up again, and `--days N` changes how many days ahead it scans.
 
-## Deploying
+## Backend and deploying (Vercel)
 
-The page is a static file, so it can be deployed to Vercel (or GitHub Pages or Netlify) as is. If ESPN ever starts blocking browser requests (CORS), add a small proxy, such as a Vercel serverless function at `/api/scoreboard`, and point `ESPN_BASE` at it.
+The repo deploys to Vercel as is. `index.html` is served as a static file, and the functions in `api/` run as serverless functions. There's no build step, no `package.json` and no environment variables.
+
+- **`/api/day?date=YYYY-MM-DD&comps=eng.1,esp.1,…`** fetches every requested competition for one day from ESPN in a single response, cut down to the fields the page uses. Vercel's CDN caches it (`s-maxage`) and shares it between all visitors: about 2 minutes around today (live scores), 3 hours for future days and a week for finished ones. A two-week window takes about 15 requests instead of about 120.
+- **`/api/venue?name=&city=&country=`** looks up a stadium on Photon once and caches the answer on the CDN for 30 days.
+
+The page detects the backend automatically. When it's opened as a file, served by a plain static server, or the API fails, it calls ESPN and Photon directly as before.
+
+### First deploy
+
+1. Go to [vercel.com/new](https://vercel.com/new) and import the `ibbya04/footyplanner` GitHub repo.
+2. Leave the defaults (Framework Preset "Other", no build command) and click **Deploy**.
+3. Every push to `main` then redeploys automatically. Pushes to other branches get preview URLs.
+
+### Running locally with the backend
+
+```
+node scripts/dev-server.js        # http://localhost:3000 (Node 18+, no dependencies)
+```
+
+This serves the page and runs `api/*.js` the way Vercel does. `vercel dev` works too, if you have the Vercel CLI.
