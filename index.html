@@ -141,6 +141,7 @@
         .card:hover, .card:focus-visible { border-color: #3a4864; border-left-color: var(--c); background: #1b2842; outline: none; }
         .card.sel { border-color: var(--accent); border-left-color: var(--c); }
         .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+        .comp-tag img { width: 14px; height: 14px; object-fit: contain; vertical-align: -3px; margin-right: 5px; background: #fff; border-radius: 3px; padding: 1px; }
         .comp-tag { font-weight: 700; letter-spacing: .03em; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .when { font-variant-numeric: tabular-nums; white-space: nowrap; }
         .when .alt { color: var(--faint); margin-left: 4px; }
@@ -195,6 +196,13 @@
         }
         .pin.live { box-shadow: 0 0 0 3px rgba(244,63,94,.55), 0 2px 8px rgba(0,0,0,.45); }
         .pin.approx { border-style: dashed; }
+        .pin.logo {
+            padding: 0; width: 30px; height: 30px; border-radius: 50%;
+            background: #fff; border: 3px solid var(--c);
+            display: grid; place-items: center;
+        }
+        .pin.logo img { width: 20px; height: 20px; object-fit: contain; display: block; }
+        .pin.logo.approx { border-style: dashed; }
         .leaflet-marker-icon.pin-icon { background: none; border: 0; }
         .leaflet-marker-icon.pin-icon:hover { z-index: 10000 !important; }
         .cluster {
@@ -541,6 +549,21 @@ function normalizeEvent(ev, comp) {
     };
 }
 
+// Competition logos come from the same scoreboard responses and are kept separately,
+// because cached days don't carry them.
+const leagueLogos = store.get('fp:logos', {});
+function rememberLeagueLogo(slug, leagues) {
+    const league = Array.isArray(leagues) && leagues[0];
+    if (!league) return;
+    const logos = league.logos || [];
+    const pick = logos.find(l => (l.rel || []).includes('default') && !(l.rel || []).includes('dark')) || logos[0];
+    const href = (pick && pick.href) || league.logo;
+    if (href && leagueLogos[slug] !== href) {
+        leagueLogos[slug] = href;
+        store.set('fp:logos', leagueLogos);
+    }
+}
+
 function fixturesCacheKey(slug, day) { return `fp:fx:${slug}:${day}`; }
 
 // Keep only the fields normalizeEvent reads, so a month of fixtures fits in localStorage.
@@ -572,6 +595,7 @@ async function fetchDay(comp, day) {
     const res = await fetch(`${ESPN_BASE}/${comp.slug}/scoreboard?dates=${day.replaceAll('-', '')}`);
     if (!res.ok) throw new Error(`ESPN ${res.status}`);
     const data = await res.json();
+    rememberLeagueLogo(comp.slug, data.leagues);
     const events = (Array.isArray(data.events) ? data.events : []).map(slimEvent);
     store.set(key, { t: Date.now(), events });
     return events;
@@ -979,7 +1003,7 @@ function renderList(list) {
         for (const m of matches) {
             const color = GROUPS[m.comp.group].color;
             html += `<button class="card ${m.id === state.selectedId ? 'sel' : ''}" style="--c:${color}" data-id="${esc(m.id)}">
-                <div class="card-top"><span class="comp-tag">${esc(m.comp.name)}</span><span class="when">${statusPill(m)} ${whenHtml(m, false)}</span></div>
+                <div class="card-top"><span class="comp-tag">${leagueLogos[m.comp.slug] ? `<img src="${esc(leagueLogos[m.comp.slug])}" alt="" onerror="this.remove()">` : ''}${esc(m.comp.name)}</span><span class="when">${statusPill(m)} ${whenHtml(m, false)}</span></div>
                 ${teamsHtml(m)}
                 <div class="card-bottom"><span class="venue">${esc(venueText(m))}</span>${m.loc ? '' : '<span class="nomap">not on map</span>'}</div>
             </button>`;
@@ -1011,10 +1035,17 @@ function popupHtml(m) {
     </div>`;
 }
 
+// Logo badge when we know the competition's logo; the short code otherwise (or if the image fails).
+function pinHtml(m, classes, color) {
+    const logo = leagueLogos[m.comp.slug];
+    if (!logo) return `<div class="${classes}" style="--c:${color}">${esc(m.comp.short)}</div>`;
+    return `<div class="${classes} logo" style="--c:${color}" title="${esc(m.comp.name)}"><img src="${esc(logo)}" alt="${esc(m.comp.short)}" onerror="this.parentNode.classList.remove('logo');this.replaceWith(this.alt)"></div>`;
+}
+
 function renderMarkers(list) {
     if (!cluster) return;
     // Only rebuild when the set of pins actually changes, so popups don't close on every render.
-    const signature = list.filter(m => m.loc).map(m => `${m.id}@${m.loc.lat},${m.loc.lng}:${m.state}:${m.home.score}-${m.away.score}:${state.tzMode}`).join('|');
+    const signature = list.filter(m => m.loc).map(m => `${m.id}@${m.loc.lat},${m.loc.lng}:${m.state}:${m.home.score}-${m.away.score}:${state.tzMode}:${leagueLogos[m.comp.slug] ? 1 : 0}`).join('|');
     if (signature === renderMarkers.last) return;
     renderMarkers.last = signature;
 
@@ -1029,7 +1060,7 @@ function renderMarkers(list) {
         const classes = ['pin', m.state === 'in' ? 'live' : '', m.loc.precision === 'city' ? 'approx' : ''].join(' ');
         const icon = L.divIcon({
             className: 'pin-icon',
-            html: `<div class="${classes}" style="--c:${color}">${esc(m.comp.short)}</div>`,
+            html: pinHtml(m, classes, color),
             iconSize: [0, 0],
         });
         const marker = L.marker([m.loc.lat, m.loc.lng], { icon, title: `${m.home.name} v ${m.away.name}` })
