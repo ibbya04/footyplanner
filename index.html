@@ -124,6 +124,56 @@
         .cal-day:disabled { color: var(--faint); opacity: .4; cursor: not-allowed; }
         .cal-hint { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center; }
 
+        .near-row { display: flex; gap: 6px; }
+        .near-box { position: relative; flex: 1; min-width: 0; }
+        .near-box .field { padding-right: 26px; }
+        .near-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: var(--muted); font-size: 18px; width: 22px; height: 22px; line-height: 1; }
+        .near-clear:hover { color: var(--text); }
+        .icon-btn { width: 36px; flex: 0 0 36px; display: grid; place-items: center; padding: 0; cursor: pointer; color: var(--muted); }
+        .icon-btn:hover { color: var(--text); }
+        .icon-btn.busy { color: var(--accent); }
+        .radius { width: auto; flex: 0 0 auto; }
+        .suggest {
+            position: absolute; top: calc(100% + 4px); left: 0; right: -86px; z-index: 1500;
+            background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+            box-shadow: 0 12px 30px rgba(0,0,0,.5);
+        }
+        .suggest[hidden] { display: none; }
+        .suggest button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 8px 10px; font-size: 13px; }
+        .suggest button small { display: block; color: var(--muted); font-size: 11.5px; }
+        .suggest button:hover, .suggest button.active { background: var(--line); }
+        .suggest .msg { padding: 8px 10px; font-size: 12px; color: var(--muted); }
+
+        .tabs { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid var(--line); }
+        .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); padding: 6px 10px 8px; font-weight: 600; font-size: 13px; }
+        .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
+        .tabs .n { color: var(--faint); font-weight: 500; }
+
+        .card { cursor: pointer; }
+        .card-bottom .right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .dist { color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .star { background: none; border: 0; padding: 0 2px; font-size: 17px; line-height: 1; color: var(--faint); }
+        .star:hover { color: var(--text); }
+        .star.on { color: #facc15; }
+        .tbc-note { margin-top: 6px; font-size: 11.5px; color: #fcd9a0; }
+        .changed { margin-top: 6px; font-size: 11.5px; color: var(--warn); display: flex; gap: 8px; align-items: baseline; }
+        .changed .link-btn { font-size: 11.5px; }
+
+        .sl-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 4px 4px; }
+        .leg { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--muted); margin: -2px 0 5px 12px; padding-left: 10px; border-left: 2px dotted var(--line); min-height: 22px; }
+        .leg.warn { color: var(--warn); border-left-color: var(--warn); }
+        .stale { margin-top: 6px; font-size: 11px; color: var(--faint); font-style: italic; }
+
+        .pin.starred { box-shadow: 0 0 0 3px #facc15, 0 2px 8px rgba(0,0,0,.45); }
+        .home-pin { transform: translate(-50%, -50%); position: absolute; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+
+        .toast {
+            position: fixed; left: 50%; top: 16px; transform: translateX(-50%); z-index: 3000;
+            background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font-size: 13px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.5);
+        }
+        .toast[hidden] { display: none; }
+
         details.comps > summary { list-style: none; cursor: pointer; }
         details.comps > summary::-webkit-details-marker { display: none; }
         details.comps > summary .caret { transition: transform .15s; display: inline-block; }
@@ -343,14 +393,41 @@
             <input type="search" id="search" class="field" placeholder="Search team, city or stadium…" autocomplete="off">
         </div>
 
+        <div class="near">
+            <div class="near-row">
+                <div class="near-box">
+                    <input type="text" id="nearInput" class="field" placeholder="Near… city, hotel or address" autocomplete="off" aria-label="Find matches near a place" aria-autocomplete="list" aria-controls="nearSuggest">
+                    <button type="button" id="nearClear" class="near-clear" aria-label="Clear place" hidden>×</button>
+                    <div class="suggest" id="nearSuggest" role="listbox" hidden></div>
+                </div>
+                <button type="button" id="nearMe" class="field icon-btn" title="Use my location" aria-label="Use my location">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+                </button>
+                <select id="nearRadius" class="field radius" aria-label="Distance">
+                    <option value="25">25 km</option>
+                    <option value="50">50 km</option>
+                    <option value="100">100 km</option>
+                    <option value="200">200 km</option>
+                    <option value="400">400 km</option>
+                </select>
+            </div>
+        </div>
+
         <div class="toggles">
             <label title="Only list matches inside the visible map area"><input type="checkbox" id="inView"> Only what's on the map</label>
             <span>Times: <span class="seg" id="tzSeg">
                 <button data-tz="venue" title="Kick-off in the stadium's local time">Local</button><button data-tz="mine" title="Kick-off in your device's time zone">Mine</button>
             </span></span>
+            <span id="sortWrap" hidden>Sort: <span class="seg" id="sortSeg">
+                <button data-sort="time">Time</button><button data-sort="distance">Distance</button>
+            </span></span>
         </div>
     </section>
 
+    <div class="tabs" id="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="all">Matches</button>
+        <button type="button" role="tab" data-tab="shortlist">★ Shortlist <span class="n" id="starCount"></span></button>
+    </div>
     <div class="status" id="status"></div>
     <div class="days" id="days"></div>
     <div class="list" id="list" aria-live="polite"></div>
@@ -373,6 +450,8 @@
     </div>
     <div class="legend" id="legend"></div>
 </main>
+
+<div class="toast" id="toast" role="status" hidden></div>
 
 <nav class="view-switch" aria-label="View">
     <button data-view="list" class="on">List</button>
@@ -794,9 +873,15 @@ const state = {
     selectedId: null,
     loadToken: 0,
     geocodePending: 0,
+    near: store.get('fp:near', null),       // { name, lat, lng } or null
+    radius: store.get('fp:radius', 100),     // km
+    sort: store.get('fp:sort', 'time'),      // 'time' | 'distance' (only while a place is set)
+    tab: 'all',                              // 'all' | 'shortlist'
+    starred: new Map(store.get('fp:starred', []).map(s => [s.id, s])), // id -> snapshot
+    pendingStars: new Set(),                 // ids from a shared link, filled in once their matches load
 };
 
-let map, cluster, tileLayer;
+let map, cluster, tileLayer, nearLayer, routeLayer;
 const markerById = new Map();
 
 /* =====================================================================
@@ -893,6 +978,12 @@ function displayZone(m) {
     return state.tzMode === 'mine' ? MY_TZ : m.tz;
 }
 
+// With no confirmed time, ESPN's placeholder hour is meaningless, so use its calendar date as-is
+// rather than letting a time-zone shift push the match onto the neighbouring day.
+function matchDay(m, tz) {
+    return m.timeValid ? dayInZone(m.kickoff, tz) : m.kickoff.toISOString().slice(0, 10);
+}
+
 function allMatches() {
     const out = [];
     const seen = new Set();
@@ -906,9 +997,9 @@ function allMatches() {
             m.loc = locationFor(m.venue);
             m.tz = venueTimeZone(m.venue.country, m.loc && m.loc.lng);
             // Keep only matches whose local calendar day falls in the chosen window.
-            m.localDay = dayInZone(m.kickoff, m.tz);
+            m.localDay = matchDay(m, m.tz);
             if (m.localDay < state.start || m.localDay > state.end) continue;
-            m.day = dayInZone(m.kickoff, displayZone(m));
+            m.day = matchDay(m, displayZone(m));
             out.push(m);
         }
     }
@@ -923,14 +1014,25 @@ function matchesSearch(m, q) {
     return q.split(/\s+/).every(term => hay.includes(term));
 }
 
-function visibleMatches() {
+function visibleMatches(all = allMatches()) {
     const q = state.search.trim().toLowerCase();
     const bounds = state.inView && map ? map.getBounds() : null;
-    const base = allMatches().filter(m => matchesSearch(m, q) && (!bounds || (m.loc && bounds.contains([m.loc.lat, m.loc.lng]))));
+    const near = state.near;
+    const base = all.filter(m => {
+        if (!matchesSearch(m, q)) return false;
+        if (bounds && !(m.loc && bounds.contains([m.loc.lat, m.loc.lng]))) return false;
+        if (near) {
+            if (!m.loc) return false; // can't tell how far an unplaced match is
+            m.dist = distanceKm(near, m.loc);
+            if (m.dist > state.radius) return false;
+        }
+        return true;
+    });
     const dayCounts = new Map();
     base.forEach(m => dayCounts.set(m.day, (dayCounts.get(m.day) || 0) + 1));
     if (state.day && !dayCounts.has(state.day)) state.day = null;
     const list = state.day ? base.filter(m => m.day === state.day) : base;
+    if (near && state.sort === 'distance') list.sort((a, b) => a.dist - b.dist || a.kickoff - b.kickoff);
     return { list, dayCounts };
 }
 
@@ -946,11 +1048,23 @@ function scheduleRender() {
 }
 
 function render() {
-    const { list, dayCounts } = visibleMatches();
+    const all = allMatches();
+    refreshStarred(all);
+    const { list, dayCounts } = visibleMatches(all);
+    renderTabs();
     renderStatus(list.length);
-    renderDays(dayCounts);
-    renderList(list);
-    renderMarkers(list);
+    if (state.tab === 'shortlist') {
+        $('days').innerHTML = '';
+        const items = shortlistItems();
+        renderShortlist(items);
+        renderMarkers(items);
+        renderRoute(items);
+    } else {
+        renderDays(dayCounts);
+        renderList(list);
+        renderMarkers(list);
+        renderRoute([]);
+    }
 }
 
 function renderStatus(count) {
@@ -960,6 +1074,7 @@ function renderStatus(count) {
     const failed = state.failed.size;
     const parts = [];
     if (loading) parts.push(`<span><span class="spinner"></span>Loading ${total - loading}/${total} competitions…</span>`);
+    else if (state.tab === 'shortlist') parts.push(`<span><span class="count">${state.starred.size}</span> saved</span>`);
     else if (count != null) parts.push(`<span><span class="count">${count}</span> ${count === 1 ? 'match' : 'matches'}</span>`);
     const right = [];
     if (state.geocodePending > 0) right.push(`<span><span class="spinner"></span>Finding ${state.geocodePending} grounds</span>`);
@@ -1003,7 +1118,7 @@ function statusPill(m) {
 
 function whenHtml(m, withDay) {
     const tz = displayZone(m);
-    const dayPart = withDay ? `${formatDayLabel(dayInZone(m.kickoff, tz))} · ` : '';
+    const dayPart = withDay ? `${formatDayLabel(matchDay(m, tz))} · ` : '';
     if (!m.timeValid) return `${esc(dayPart)}TBC`;
     const main = `${dayPart}${timeInZone(m.kickoff, tz)}`;
     // When showing venue time, also hint the user's own time if it differs.
@@ -1027,6 +1142,7 @@ function renderList(list) {
         let msg = 'No matches in these dates for the selected competitions.';
         if (!state.enabled.size) msg = 'Pick at least one competition above.';
         else if (state.search) msg = `Nothing matches “${esc(state.search)}”.`;
+        else if (state.near) msg = `No matches within ${state.radius} km of ${esc(state.near.name)}. Try a bigger distance or other dates.`;
         else if (state.inView) msg = 'No matches in the visible map area. Zoom out or untick “Only what\'s on the map”.';
         const allFailed = state.failed.size && state.failed.size === state.enabled.size;
         el.innerHTML = allFailed
@@ -1037,22 +1153,48 @@ function renderList(list) {
         return;
     }
 
-    const groups = new Map();
-    list.forEach(m => { if (!groups.has(m.day)) groups.set(m.day, []); groups.get(m.day).push(m); });
-
     let html = '';
-    for (const [day, matches] of groups) {
-        html += `<div class="day-head"><span>${esc(formatDayLabel(day))}</span><span>${matches.length}</span></div>`;
-        for (const m of matches) {
-            const color = GROUPS[m.comp.group].color;
-            html += `<button class="card ${m.id === state.selectedId ? 'sel' : ''}" style="--c:${color}" data-id="${esc(m.id)}">
-                <div class="card-top"><span class="comp-tag">${leagueLogos[m.comp.slug] ? `<img src="${esc(leagueLogos[m.comp.slug])}" alt="" onerror="this.remove()">` : ''}${esc(m.comp.name)}</span><span class="when">${statusPill(m)} ${whenHtml(m, false)}</span></div>
-                ${teamsHtml(m)}
-                <div class="card-bottom"><span class="venue">${esc(venueText(m))}</span>${m.loc ? '' : '<span class="nomap">not on map</span>'}</div>
-            </button>`;
+    if (state.near && state.sort === 'distance') {
+        html += `<div class="day-head"><span>Nearest to ${esc(state.near.name)}</span><span>${list.length}</span></div>`;
+        html += list.map(m => cardHtml(m, { withDay: true })).join('');
+    } else {
+        const groups = new Map();
+        list.forEach(m => { if (!groups.has(m.day)) groups.set(m.day, []); groups.get(m.day).push(m); });
+        for (const [day, matches] of groups) {
+            html += `<div class="day-head"><span>${esc(formatDayLabel(day))}</span><span>${matches.length}</span></div>`;
+            html += matches.map(m => cardHtml(m)).join('');
         }
     }
     el.innerHTML = html;
+}
+
+function compTag(m) {
+    const logo = leagueLogos[m.comp.slug];
+    return `<span class="comp-tag">${logo ? `<img src="${esc(logo)}" alt="" onerror="this.remove()">` : ''}${esc(m.comp.name)}</span>`;
+}
+
+function starButton(id) {
+    const on = state.starred.has(id);
+    return `<button type="button" class="star ${on ? 'on' : ''}" data-star="${esc(id)}" aria-pressed="${on}" title="${on ? 'Remove from shortlist' : 'Add to shortlist'}">${on ? '★' : '☆'}</button>`;
+}
+
+function distanceHtml(m) {
+    if (!state.near || m.dist == null) return '';
+    const how = m.dist > FLY_KM ? ' by air' : '';
+    return `<span class="dist" title="Straight-line distance; travel time is a rough estimate">${esc(distLabel(m.dist))} · ≈${esc(formatMinutes(travelMinutes(m.dist)))}${how}</span>`;
+}
+
+// One match card. `extra` lets the shortlist add change notices.
+function cardHtml(m, { withDay = false, extra = '' } = {}) {
+    const color = GROUPS[m.comp.group].color;
+    const tbc = tbcInfo(m);
+    return `<div class="card ${m.id === state.selectedId ? 'sel' : ''}" style="--c:${color}" data-id="${esc(m.id)}" role="button" tabindex="0">
+        <div class="card-top">${compTag(m)}<span class="when">${statusPill(m)} ${whenHtml(m, withDay)}</span></div>
+        ${teamsHtml(m)}
+        ${tbc ? `<div class="tbc-note" title="${esc(tbc.long)}">⏳ ${esc(tbc.short)}</div>` : ''}
+        ${extra}
+        <div class="card-bottom"><span class="venue">${esc(venueText(m))}</span><span class="right">${m.loc ? distanceHtml(m) : '<span class="nomap">not on map</span>'}${starButton(m.id)}</span></div>
+    </div>`;
 }
 
 function popupHtml(m) {
@@ -1069,8 +1211,12 @@ function popupHtml(m) {
                 <div>${pill ? pill + ' ' : ''}<b>${whenHtml(m, true)}</b></div>
                 <div>${esc(venueText(m))}${m.neutral ? ' (neutral venue)' : ''}</div>
                 ${m.loc && m.loc.precision === 'city' ? `<div style="color:var(--faint)">Pin shows the city; ${m.loc.pending ? 'still locating the ground…' : 'exact ground not found.'}</div>` : ''}
+                ${state.near && m.loc ? `<div>${esc(travelLabel(distanceKm(state.near, m.loc)))} from ${esc(state.near.name)}</div>` : ''}
+                ${tbcInfo(m) ? `<div class="tbc-note">${esc(tbcInfo(m).long)}</div>` : ''}
             </div>
             <div class="pop-links">
+                <button type="button" class="link-btn" data-star="${esc(m.id)}">${state.starred.has(m.id) ? '★ Saved' : '☆ Save to shortlist'}</button>
+                <button type="button" class="link-btn" data-ics="${esc(m.id)}">Add to calendar</button>
                 ${m.link ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Match centre ↗</a>` : ''}
                 ${mapsUrl ? `<a href="${esc(mapsUrl)}" target="_blank" rel="noopener">Directions ↗</a>` : ''}
             </div>
@@ -1088,7 +1234,7 @@ function pinHtml(m, classes, color) {
 function renderMarkers(list) {
     if (!cluster) return;
     // Only rebuild when the set of pins actually changes, so popups don't close on every render.
-    const signature = list.filter(m => m.loc).map(m => `${m.id}@${m.loc.lat},${m.loc.lng}:${m.state}:${m.home.score}-${m.away.score}:${state.tzMode}:${leagueLogos[m.comp.slug] ? 1 : 0}`).join('|');
+    const signature = list.filter(m => m.loc).map(m => `${m.id}@${m.loc.lat},${m.loc.lng}:${m.state}:${m.home.score}-${m.away.score}:${state.tzMode}:${leagueLogos[m.comp.slug] ? 1 : 0}:${state.starred.has(m.id) ? 1 : 0}`).join('|') + `#${state.tab}`;
     if (signature === renderMarkers.last) return;
     renderMarkers.last = signature;
 
@@ -1100,7 +1246,7 @@ function renderMarkers(list) {
     for (const m of list) {
         if (!m.loc) continue;
         const color = GROUPS[m.comp.group].color;
-        const classes = ['pin', m.state === 'in' ? 'live' : '', m.loc.precision === 'city' ? 'approx' : ''].join(' ');
+        const classes = ['pin', m.state === 'in' ? 'live' : '', m.loc.precision === 'city' ? 'approx' : '', state.starred.has(m.id) ? 'starred' : ''].join(' ');
         const icon = L.divIcon({
             className: 'pin-icon',
             html: pinHtml(m, classes, color),
@@ -1277,6 +1423,426 @@ function initRangePicker() {
     });
 }
 
+/* ---------- Unconfirmed kick-off times ---------- */
+
+// Rough lead times for when each league fixes TV-driven kick-offs. Guidance only, not a promise.
+const TBC_RULES = {
+    'eng.1': { weeks: 5, text: 'about 5–6 weeks before', tv: true },
+    'eng.2': { weeks: 4, text: 'about 4 weeks before', tv: true },
+    'esp.1': { weeks: 2, text: 'only about 1–3 weeks before', tv: true },
+    'ita.1': { weeks: 3, text: 'about 3–4 weeks before', tv: true },
+    'ger.1': { weeks: 4, text: 'about 3–5 weeks before', tv: true },
+    'fra.1': { weeks: 3, text: 'about 3–4 weeks before', tv: true },
+};
+const CUP_SLUG = /\.(fa|league_cup|copa_del_rey|coppa_italia|dfb_pokal|coupe_de_france)$/;
+
+function tbcRule(comp) {
+    if (TBC_RULES[comp.slug]) return TBC_RULES[comp.slug];
+    if (comp.group === 'uefa') return { weeks: 4, text: 'when UEFA publishes the schedule, usually well ahead', tv: false };
+    if (CUP_SLUG.test(comp.slug)) return { weeks: 2, text: 'about 2–3 weeks after the draw', tv: true };
+    return { weeks: 3, text: 'about 2–4 weeks before', tv: true };
+}
+
+function tbcInfo(m) {
+    if (m.timeValid || m.state !== 'pre' || m.statusName === 'STATUS_POSTPONED') return null;
+    const rule = tbcRule(m.comp);
+    const day = matchDay(m, m.tz);
+    const expected = addDays(day, -7 * rule.weeks);
+    const due = expected <= isoDay(new Date());
+    return {
+        short: due ? 'Kick-off time due to be announced any day' : `Kick-off time usually confirmed around ${formatDayLabel(expected)}`,
+        long: `Kick-off time not confirmed yet. ${m.comp.name} times are usually set ${rule.text}, so ${due ? 'it should be announced any day now' : `expect it around ${formatDayLabel(expected)}`}.`
+            + (rule.tv ? ' The match can also move to another day of that weekend for TV.' : '')
+            + ' Avoid non-refundable bookings that depend on the exact time.',
+    };
+}
+
+/* ---------- Distances ---------- */
+
+function distLabel(km) { return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`; }
+
+// Beyond this, assume you'd fly: ~3h of airports and transfers plus flight time.
+const FLY_KM = 600;
+function travelMinutes(km) {
+    return km > FLY_KM ? Math.round((180 + km / 750 * 60) / 15) * 15 : driveMinutes(km);
+}
+function travelLabel(km) {
+    if (km < 1) return 'Same stadium';
+    return km > FLY_KM
+        ? `${distLabel(km)} · ≈${formatMinutes(travelMinutes(km))} door to door by air`
+        : `${distLabel(km)} · ≈${formatMinutes(driveMinutes(km))} drive`;
+}
+
+// Straight line × 1.3 for roads, at a speed that grows with distance. A rough guide only.
+function driveMinutes(km) {
+    const road = km * 1.3;
+    const speed = road < 40 ? 40 : road < 150 ? 70 : 90;
+    return Math.max(5, Math.round((road / speed) * 60 / 5) * 5);
+}
+function formatMinutes(mins) {
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60), r = mins % 60;
+    return r ? `${h}h ${r}m` : `${h}h`;
+}
+
+/* ---------- Shortlist ---------- */
+
+// Starred matches are stored as snapshots so the shortlist survives changing dates or reloading.
+function snapshot(m, prev) {
+    const kickoff = m.kickoff.toISOString();
+    const side = t => ({ name: t.name, short: t.short, logo: t.logo, score: t.score, winner: t.winner });
+    return {
+        id: m.id, slug: m.comp.slug, kickoff, timeValid: m.timeValid,
+        state: m.state, statusName: m.statusName, statusShort: m.statusShort,
+        home: side(m.home), away: side(m.away), neutral: m.neutral,
+        venue: m.venue, loc: m.loc ? { lat: m.loc.lat, lng: m.loc.lng, precision: m.loc.precision } : null,
+        tz: m.tz, link: m.link,
+        // What the kick-off was when you saved it, so later changes can be flagged.
+        savedKickoff: prev ? prev.savedKickoff : kickoff,
+        savedTimeValid: prev ? prev.savedTimeValid : m.timeValid,
+    };
+}
+
+function fromSnapshot(s) {
+    const m = { ...s, comp: COMP_BY_SLUG[s.slug], kickoff: new Date(s.kickoff) };
+    if (!m.loc) m.loc = locationFor(m.venue); // the ground may have been found since
+    m.day = matchDay(m, displayZone(m));
+    m.inRange = !!state.raw.get(s.slug) && m.day >= state.start && m.day <= state.end;
+    return m;
+}
+
+function saveStarred() { store.set('fp:starred', [...state.starred.values()]); }
+
+// Keep saved matches up to date with fresh data, and resolve stars from shared links.
+function refreshStarred(all) {
+    let changed = false;
+    for (const m of all) {
+        const prev = state.starred.get(m.id);
+        if (!prev && !state.pendingStars.has(m.id)) continue;
+        state.pendingStars.delete(m.id);
+        const next = snapshot(m, prev);
+        if (!prev || JSON.stringify(next) !== JSON.stringify(prev)) { state.starred.set(m.id, next); changed = true; }
+    }
+    if (changed) saveStarred();
+}
+
+function toggleStar(id) {
+    if (state.starred.has(id)) {
+        state.starred.delete(id);
+    } else {
+        const m = allMatches().find(x => x.id === id);
+        if (!m) return;
+        state.starred.set(id, snapshot(m, null));
+    }
+    saveStarred();
+    render();
+}
+
+function shortlistItems() {
+    return [...state.starred.values()].filter(s => COMP_BY_SLUG[s.slug]).map(fromSnapshot).sort((a, b) => a.kickoff - b.kickoff);
+}
+
+function fmtKickoff(iso, timeValid, tz) {
+    const d = new Date(iso);
+    const day = formatDayLabel(timeValid ? dayInZone(d, tz) : iso.slice(0, 10));
+    return timeValid ? `${day} ${timeInZone(d, tz)}` : `${day} (time TBC)`;
+}
+
+function changeNote(m) {
+    let text = '';
+    if (m.savedTimeValid && m.timeValid && m.savedKickoff !== m.kickoff.toISOString()) {
+        text = `Kick-off changed since you saved it (was ${fmtKickoff(m.savedKickoff, true, displayZone(m))}).`;
+    } else if (!m.savedTimeValid && m.timeValid) {
+        text = 'Kick-off time confirmed since you saved it.';
+    }
+    return text ? `<div class="changed">⚠ ${esc(text)} <button type="button" class="link-btn" data-ack="${esc(m.id)}">OK</button></div>` : '';
+}
+
+// Travel between two consecutive saved matches, with a warning when you can't make both.
+function legHtml(prev, cur) {
+    if (!prev.loc || !cur.loc) return '';
+    const km = distanceKm(prev.loc, cur.loc);
+    const mins = km < 1 ? 0 : travelMinutes(km);
+    const travel = travelLabel(km);
+    if (!prev.timeValid || !cur.timeValid) return `<div class="leg">${esc(travel)} · times not confirmed yet</div>`;
+    const gap = (cur.kickoff - prev.kickoff) / 60000;
+    if (gap < 5) return `<div class="leg warn">⚠ Same kick-off time: you can only see one of these</div>`;
+    if (gap < 120) return `<div class="leg warn">⚠ Kick-offs overlap: only ${esc(formatMinutes(Math.round(gap)))} apart</div>`;
+    const spare = gap - 120 - mins; // ~2h for the first match itself
+    if (spare < 0) return `<div class="leg warn">⚠ Can't make both: ${esc(travel)}, but only ${esc(formatMinutes(Math.max(0, Math.round(gap - 120))))} after the first final whistle</div>`;
+    if (spare < 60 && km >= 1) return `<div class="leg warn">⚠ Tight: ${esc(travel)} with under an hour to spare</div>`;
+    return `<div class="leg">${esc(travel)}</div>`;
+}
+
+function renderShortlist(items) {
+    const el = $('list');
+    if (!items.length) {
+        el.innerHTML = `<div class="empty"><strong>Your shortlist is empty</strong>Tap ☆ on any match to save it here. You'll get an itinerary with travel times, clash warnings and a calendar export.</div>`
+            + (state.pendingStars.size ? `<div class="banner">${state.pendingStars.size} shared match${state.pendingStars.size > 1 ? 'es' : ''} still loading…</div>` : '');
+        return;
+    }
+    let html = `<div class="sl-actions">
+        <button type="button" class="chip" data-action="ics-all">📅 Add all to calendar</button>
+        <button type="button" class="chip" data-action="share">🔗 Copy share link</button>
+        <button type="button" class="chip" data-action="clear-stars">Clear</button>
+    </div>`;
+    let prev = null, lastDay = null;
+    for (const m of items) {
+        if (prev) html += legHtml(prev, m); // travel sits between the two matches, before any new day heading
+        if (m.day !== lastDay) {
+            html += `<div class="day-head"><span>${esc(formatDayLabel(m.day))}</span><span></span></div>`;
+            lastDay = m.day;
+        }
+        if (state.near && m.loc) m.dist = distanceKm(state.near, m.loc);
+        const stale = m.inRange ? '' : '<div class="stale">Outside your current dates. Details are from when it was last loaded.</div>';
+        html += cardHtml(m, { extra: changeNote(m) + stale });
+        prev = m;
+    }
+    el.innerHTML = html;
+}
+
+function renderRoute(items) {
+    if (!routeLayer) return;
+    routeLayer.clearLayers();
+    const pts = items.filter(m => m.loc).map(m => [m.loc.lat, m.loc.lng]);
+    if (pts.length > 1) L.polyline(pts, { color: '#facc15', weight: 2.5, opacity: .8, dashArray: '6 8' }).addTo(routeLayer);
+}
+
+function renderTabs() {
+    document.querySelectorAll('#tabs [data-tab]').forEach(b => {
+        b.classList.toggle('on', b.dataset.tab === state.tab);
+        b.setAttribute('aria-selected', String(b.dataset.tab === state.tab));
+    });
+    $('starCount').textContent = state.starred.size ? `(${state.starred.size})` : '';
+    $('sortWrap').hidden = !state.near || state.tab === 'shortlist';
+    document.querySelectorAll('#sortSeg button').forEach(b => b.classList.toggle('on', b.dataset.sort === state.sort));
+}
+
+function setTab(tab) {
+    state.tab = tab;
+    render();
+    if (tab === 'shortlist') fitToMatches();
+}
+
+/* ---------- Calendar export (.ics) ---------- */
+
+function icsText(text) { return String(text || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/([,;])/g, '\\$1'); }
+function icsStamp(date) { return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
+function icsFold(line) {
+    const out = [];
+    while (line.length > 74) { out.push(line.slice(0, 74)); line = ' ' + line.slice(74); }
+    out.push(line);
+    return out.join('\r\n');
+}
+
+function buildIcs(matches) {
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//footyplanner//EN', 'CALSCALE:GREGORIAN'];
+    for (const m of matches) {
+        const title = `${m.home.name} v ${m.away.name} (${m.comp.name})${m.timeValid ? '' : ' (time TBC)'}`;
+        const desc = [
+            m.timeValid ? '' : 'Kick-off time not confirmed yet; check before you travel.',
+            m.link ? `Match centre: ${m.link}` : '',
+            'Added from FootyPlanner',
+        ].filter(Boolean).join('\n');
+        lines.push('BEGIN:VEVENT', `UID:${m.id.replace(/[^\w.-]/g, '-')}@footyplanner`, `DTSTAMP:${icsStamp(new Date())}`);
+        if (m.timeValid) {
+            lines.push(`DTSTART:${icsStamp(m.kickoff)}`, `DTEND:${icsStamp(new Date(m.kickoff.getTime() + 2 * 3600e3))}`);
+        } else {
+            const day = matchDay(m, m.tz);
+            lines.push(`DTSTART;VALUE=DATE:${day.replaceAll('-', '')}`, `DTEND;VALUE=DATE:${addDays(day, 1).replaceAll('-', '')}`);
+        }
+        lines.push(`SUMMARY:${icsText(title)}`, `LOCATION:${icsText(venueText(m).replace(' · ', ', '))}`, `DESCRIPTION:${icsText(desc)}`);
+        if (m.loc) lines.push(`GEO:${m.loc.lat.toFixed(5)};${m.loc.lng.toFixed(5)}`);
+        lines.push('END:VEVENT');
+    }
+    lines.push('END:VCALENDAR');
+    return lines.map(icsFold).join('\r\n') + '\r\n';
+}
+
+function downloadIcs(matches, filename) {
+    if (!matches.length) return;
+    const url = URL.createObjectURL(new Blob([buildIcs(matches)], { type: 'text/calendar' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function matchById(id) {
+    return allMatches().find(m => m.id === id) || (state.starred.has(id) ? fromSnapshot(state.starred.get(id)) : null);
+}
+
+/* ---------- Share links ---------- */
+
+function shareUrl() {
+    const params = new URLSearchParams();
+    params.set('d', `${state.start}_${state.end}`);
+    params.set('c', [...state.enabled].join(','));
+    if (state.near) params.set('n', `${state.near.lat.toFixed(4)},${state.near.lng.toFixed(4)},${state.radius},${state.near.name}`);
+    if (state.starred.size) params.set('s', [...state.starred.keys()].join(','));
+    return `${location.href.split('#')[0]}#${params}`;
+}
+
+async function copyShareLink() {
+    const url = shareUrl();
+    try {
+        await navigator.clipboard.writeText(url);
+        toast(location.protocol === 'file:' ? 'Link copied. It will only open for others once the site is deployed.' : 'Share link copied');
+    } catch {
+        window.prompt('Copy this link:', url);
+    }
+}
+
+// Reads a shared link (#d=…&c=…&n=…&s=…) into state, then clears it from the address bar.
+function applyShareHash() {
+    if (!location.hash.includes('=')) return null;
+    // Where the hash can't be cleared (file://), don't re-apply the same link on every reload.
+    // Remembered for an hour, so opening the link again later still works.
+    const applied = store.get('fp:appliedHash', null);
+    if (applied && applied.hash === location.hash && Date.now() - applied.t < 3600e3) return null;
+    store.set('fp:appliedHash', { hash: location.hash, t: Date.now() });
+    const p = new URLSearchParams(location.hash.slice(1));
+    const range = (p.get('d') || '').split('_');
+    const comps = (p.get('c') || '').split(',').filter(sl => COMP_BY_SLUG[sl]);
+    if (comps.length) { state.enabled = new Set(comps); store.set('fp:comps', comps); }
+    const n = (p.get('n') || '').split(',');
+    if (n.length >= 4 && !isNaN(+n[0]) && !isNaN(+n[1])) {
+        state.near = { lat: +n[0], lng: +n[1], name: n.slice(3).join(',') };
+        state.radius = +n[2] || 100;
+        store.set('fp:near', state.near);
+        store.set('fp:radius', state.radius);
+    }
+    const stars = (p.get('s') || '').split(',').filter(Boolean).filter(id => !state.starred.has(id));
+    stars.forEach(id => state.pendingStars.add(id));
+    if (stars.length || p.get('s')) state.tab = 'shortlist';
+    try { history.replaceState(null, '', location.href.split('#')[0]); } catch { /* some browsers refuse on file:// */ }
+    return /^\d{4}-\d{2}-\d{2}$/.test(range[0]) && /^\d{4}-\d{2}-\d{2}$/.test(range[1]) ? range : null;
+}
+
+let toastTimer;
+function toast(text) {
+    const el = $('toast');
+    el.textContent = text;
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
+}
+
+/* ---------- Near a place ---------- */
+
+function setNear(place, { fit = true } = {}) {
+    state.near = place;
+    store.set('fp:near', place);
+    if (!place) { state.sort = 'time'; store.set('fp:sort', 'time'); }
+    $('nearInput').value = place ? place.name : '';
+    $('nearClear').hidden = !place;
+    renderNear(fit);
+    render();
+}
+
+function renderNear(fit) {
+    if (!nearLayer) return;
+    nearLayer.clearLayers();
+    const near = state.near;
+    if (!near) return;
+    const circle = L.circle([near.lat, near.lng], {
+        radius: state.radius * 1000, color: '#10b981', weight: 1.5, dashArray: '6 6', fillOpacity: .05, interactive: false,
+    }).addTo(nearLayer);
+    L.marker([near.lat, near.lng], {
+        icon: L.divIcon({ className: 'pin-icon', html: '<div class="home-pin" title="Your place">⌂</div>', iconSize: [0, 0] }),
+        title: near.name, keyboard: false, zIndexOffset: 1000,
+    }).addTo(nearLayer);
+    if (fit) map.fitBounds(circle.getBounds(), { padding: [20, 20] });
+}
+
+function placeLabel(props) {
+    const name = props.name || [props.street, props.housenumber].filter(Boolean).join(' ') || props.city || '';
+    const sub = [props.city !== name ? props.city : '', props.state, props.country].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ');
+    return { name, sub };
+}
+
+function initNear() {
+    const input = $('nearInput'), box = $('nearSuggest');
+    let results = [], active = -1, timer, seq = 0;
+    $('nearRadius').value = String(state.radius);
+    input.value = state.near ? state.near.name : '';
+    $('nearClear').hidden = !state.near;
+
+    const close = () => { box.hidden = true; active = -1; };
+    const show = html => { box.innerHTML = html; box.hidden = false; };
+    const draw = () => show(results.length
+        ? results.map((r, i) => `<button type="button" role="option" class="${i === active ? 'active' : ''}" data-i="${i}">${esc(r.name)}<small>${esc(r.sub)}</small></button>`).join('')
+        : '<div class="msg">No places found</div>');
+    const choose = i => {
+        const r = results[i];
+        if (!r) return;
+        close();
+        setNear({ name: r.name, lat: r.lat, lng: r.lng });
+    };
+
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        const q = input.value.trim();
+        if (q.length < 2) { close(); return; }
+        timer = setTimeout(async () => {
+            const mine = ++seq;
+            const c = map.getCenter();
+            try {
+                const feats = await photon({ q, limit: '6', lat: c.lat.toFixed(3), lon: c.lng.toFixed(3) });
+                if (mine !== seq) return;
+                results = feats.map(f => ({ ...placeLabel(f.properties || {}), ...featPoint(f) })).filter(r => r.name);
+                active = -1;
+                draw();
+            } catch {
+                if (mine === seq) show('<div class="msg">Place search is unavailable right now</div>');
+            }
+        }, 250);
+    });
+    input.addEventListener('keydown', e => {
+        if (box.hidden || !results.length) return;
+        if (e.key === 'ArrowDown') { active = (active + 1) % results.length; draw(); e.preventDefault(); }
+        else if (e.key === 'ArrowUp') { active = (active - 1 + results.length) % results.length; draw(); e.preventDefault(); }
+        else if (e.key === 'Enter') { choose(active < 0 ? 0 : active); e.preventDefault(); }
+        else if (e.key === 'Escape') close();
+    });
+    box.addEventListener('mousedown', e => {
+        const b = e.target.closest('[data-i]');
+        if (b) { e.preventDefault(); choose(+b.dataset.i); }
+    });
+    input.addEventListener('blur', () => setTimeout(close, 150));
+
+    $('nearClear').addEventListener('click', () => { setNear(null); input.focus(); });
+    $('nearRadius').addEventListener('change', e => {
+        state.radius = +e.target.value;
+        store.set('fp:radius', state.radius);
+        renderNear(true);
+        render();
+    });
+    $('nearMe').addEventListener('click', () => {
+        if (!navigator.geolocation) return toast('Your browser can’t share its location');
+        $('nearMe').classList.add('busy');
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                $('nearMe').classList.remove('busy');
+                setNear({ name: 'My location', lat: pos.coords.latitude, lng: pos.coords.longitude });
+            },
+            err => {
+                $('nearMe').classList.remove('busy');
+                toast(err.code === 1 ? 'Location permission was denied' : 'Couldn’t get your location');
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 },
+        );
+    });
+    $('sortSeg').addEventListener('click', e => {
+        const b = e.target.closest('[data-sort]');
+        if (!b) return;
+        state.sort = b.dataset.sort;
+        store.set('fp:sort', state.sort);
+        render();
+    });
+}
+
 function selectCard(id, fromList) {
     state.selectedId = id;
     document.querySelectorAll('.card.sel').forEach(c => c.classList.remove('sel'));
@@ -1310,7 +1876,8 @@ function setView(view) {
 }
 
 function fitToMatches() {
-    const pts = visibleMatches().list.filter(m => m.loc).map(m => [m.loc.lat, m.loc.lng]);
+    const items = state.tab === 'shortlist' ? shortlistItems() : visibleMatches().list;
+    const pts = items.filter(m => m.loc).map(m => [m.loc.lat, m.loc.lng]);
     if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 11 });
 }
 
@@ -1338,6 +1905,19 @@ function initMap() {
         spiderfyDistanceMultiplier: 1.6,
         iconCreateFunction: c => L.divIcon({ className: 'cluster', html: `<div>${c.getChildCount()}</div>`, iconSize: [40, 40] }),
     }).addTo(map);
+    nearLayer = L.layerGroup().addTo(map);
+    routeLayer = L.layerGroup().addTo(map);
+
+    // Buttons inside popups (save, calendar).
+    map.getContainer().addEventListener('click', e => {
+        const star = e.target.closest('[data-star]');
+        if (star) return toggleStar(star.dataset.star);
+        const ics = e.target.closest('[data-ics]');
+        if (ics) {
+            const m = matchById(ics.dataset.ics);
+            if (m) downloadIcs([m], `${m.home.name} v ${m.away.name}.ics`.replace(/[^\w .-]/g, ''));
+        }
+    });
 
     $('tileSelect').addEventListener('change', e => {
         setTiles(e.target.value);
@@ -1400,10 +1980,41 @@ function initControls() {
     });
 
     $('list').addEventListener('click', e => {
-        if (e.target.closest('[data-action="retry"]')) return retryFailed();
+        const action = e.target.closest('[data-action]');
+        if (action) {
+            const a = action.dataset.action;
+            if (a === 'retry') return retryFailed();
+            if (a === 'ics-all') return downloadIcs(shortlistItems(), 'footy-trip.ics');
+            if (a === 'share') return copyShareLink();
+            if (a === 'clear-stars' && confirm('Remove all matches from your shortlist?')) {
+                state.starred.clear();
+                saveStarred();
+                return render();
+            }
+            return;
+        }
+        const star = e.target.closest('[data-star]');
+        if (star) return toggleStar(star.dataset.star);
+        const ack = e.target.closest('[data-ack]');
+        if (ack) {
+            const sObj = state.starred.get(ack.dataset.ack);
+            if (sObj) { sObj.savedKickoff = sObj.kickoff; sObj.savedTimeValid = sObj.timeValid; saveStarred(); render(); }
+            return;
+        }
         const card = e.target.closest('.card');
         if (card) focusMatch(card.dataset.id);
     });
+    $('list').addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('card')) {
+            e.preventDefault();
+            focusMatch(e.target.dataset.id);
+        }
+    });
+    $('tabs').addEventListener('click', e => {
+        const b = e.target.closest('[data-tab]');
+        if (b) setTab(b.dataset.tab);
+    });
+    initNear();
     $('status').addEventListener('click', e => { if (e.target.closest('[data-action="retry"]')) retryFailed(); });
     $('fitBtn').addEventListener('click', fitToMatches);
     document.querySelector('.view-switch').addEventListener('click', e => {
@@ -1423,11 +2034,18 @@ function init() {
     renderCompPicker();
     renderTzSeg();
 
-    // Restore the last range if it is still in the future; otherwise default to the next 14 days.
+    // A shared link wins; otherwise restore the last range if it's still current, else the next 14 days.
+    const shared = applyShareHash();
+    renderCompPicker();
+    $('nearRadius').value = String(state.radius);
+    $('nearInput').value = state.near ? state.near.name : '';
+    $('nearClear').hidden = !state.near;
     const today = isoDay(new Date());
     const saved = store.get('fp:range', null);
-    if (saved && saved.end >= today) setRange(saved.start < today ? today : saved.start, saved.end, { load: false });
+    if (shared) setRange(shared[0], shared[1], { load: false });
+    else if (saved && saved.end >= today) setRange(saved.start < today ? today : saved.start, saved.end, { load: false });
     else setRange(...presetRange('14', today), { load: false });
+    renderNear(!!state.near);
     loadFixtures();
 }
 
