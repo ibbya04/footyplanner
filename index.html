@@ -58,18 +58,65 @@
         #map { position: absolute; inset: 0; background: #0f172a; }
 
         header.brand {
-            display: flex; align-items: center; gap: 10px;
-            padding: 14px 16px 12px;
+            display: flex; align-items: center; gap: 9px;
+            padding: 10px 14px;
             border-bottom: 1px solid var(--line);
         }
         .brand-logo {
-            width: 34px; height: 34px; border-radius: 9px;
+            width: 28px; height: 28px; border-radius: 8px;
             display: grid; place-items: center;
             background: rgba(16,185,129,.12); color: var(--accent);
         }
-        .brand h1 { font-size: 17px; margin: 0; letter-spacing: -.01em; }
+        .brand h1 { font-size: 16px; margin: 0; letter-spacing: -.01em; flex: 1; }
         .brand h1 span { color: var(--accent); }
-        .brand p { margin: 1px 0 0; font-size: 12px; color: var(--muted); }
+        .head-btn { width: 32px; height: 32px; flex: 0 0 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+        .head-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--text); }
+
+        /* Popovers: one shared look for dates, place, leagues and options. */
+        .pop-wrap { position: relative; }
+        .pop {
+            position: absolute; top: calc(100% + 6px); left: 0; z-index: 1500;
+            width: 300px; max-width: calc(100vw - 32px);
+            background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+            padding: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
+        }
+        .pop[hidden] { display: none; }
+        .opt-pop { left: auto; right: 0; width: 290px; }
+        .near-pop { left: auto; right: 0; width: 310px; }
+        #nearRadius .chip { padding: 3px 9px; }
+        .pop-label + .chips-row { margin-top: 0; }
+        .chip.busy { color: var(--accent); border-color: var(--accent); }
+        .pop-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+        .chips-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+        .opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; border-top: 1px solid var(--line); cursor: default; }
+        .opt:first-child { border-top: 0; padding-top: 0; }
+        label.opt { cursor: pointer; }
+        .opt-note { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--faint); }
+        .opt-note a { color: var(--muted); }
+        .switch { appearance: none; -webkit-appearance: none; margin: 0; flex: 0 0 34px; width: 34px; height: 20px; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; transition: background .15s; }
+        .switch::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: left .15s, background .15s; }
+        .switch:checked { background: var(--accent); }
+        .switch:checked::after { left: 17px; background: #fff; }
+        .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+        /* Trip row: dates + place as two compact buttons. */
+        .trip { display: flex; gap: 6px; padding: 10px 14px; }
+        .trip .pop-wrap { flex: 1; min-width: 0; }
+        .trip-btn {
+            width: 100%; display: flex; align-items: center; gap: 7px;
+            background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+            padding: 8px 10px; font-size: 13px; text-align: left; white-space: nowrap; overflow: hidden;
+        }
+        .trip-btn:hover { border-color: #3a4864; }
+        .trip-btn svg { color: var(--muted); flex-shrink: 0; }
+        .trip-btn[aria-expanded="true"] { border-color: var(--accent); }
+        .trip-btn.set { border-color: rgba(16,185,129,.55); }
+        .trip-btn.set svg { color: var(--accent); }
+        .pill-text { display: flex; align-items: baseline; gap: 6px; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .pill-text .n { margin-left: auto; color: var(--faint); font-size: 12px; }
+        .progress { height: 2px; margin: -1px 14px 0; background: transparent; overflow: hidden; }
+        .progress div { height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+        .progress[hidden] { display: none; }
 
         .controls { padding: 12px 16px; border-bottom: 1px solid var(--line); display: grid; gap: 12px; }
         .label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -99,13 +146,9 @@
         .range-btn { display: flex; align-items: center; gap: 8px; text-align: left; cursor: pointer; }
         .range-btn svg { color: var(--muted); flex-shrink: 0; }
         .range-btn .n { margin-left: auto; color: var(--faint); font-size: 12px; }
-        .cal-pop {
-            position: absolute; top: calc(100% + 6px); left: 0; z-index: 1500;
-            width: 300px; max-width: calc(100vw - 32px);
-            background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
-            padding: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
-        }
-        .cal-pop[hidden] { display: none; }
+        .cal-pop { width: 320px; }
+        .cal-pop .presets { margin: 0 0 8px; flex-wrap: nowrap; }
+        .cal-pop .presets .chip { padding: 3px 9px; }
         .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 600; }
         .cal-nav { background: none; border: 0; color: var(--muted); font-size: 20px; line-height: 1; width: 32px; height: 32px; border-radius: 8px; }
         .cal-nav:hover { background: var(--bg); color: var(--text); }
@@ -125,7 +168,6 @@
         .cal-day:disabled { color: var(--faint); opacity: .4; cursor: not-allowed; }
         .cal-hint { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center; }
 
-        .near-row { display: flex; gap: 6px; }
         .near-box { position: relative; flex: 1; min-width: 0; }
         .near-box .field { padding-right: 26px; }
         .near-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: var(--muted); font-size: 18px; width: 22px; height: 22px; line-height: 1; }
@@ -133,9 +175,8 @@
         .icon-btn { width: 36px; flex: 0 0 36px; display: grid; place-items: center; padding: 0; cursor: pointer; color: var(--muted); }
         .icon-btn:hover { color: var(--text); }
         .icon-btn.busy { color: var(--accent); }
-        .radius { width: auto; flex: 0 0 auto; }
         .suggest {
-            position: absolute; top: calc(100% + 4px); left: 0; right: -86px; z-index: 1500;
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 1600;
             background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
             box-shadow: 0 12px 30px rgba(0,0,0,.5);
         }
@@ -145,10 +186,11 @@
         .suggest button:hover, .suggest button.active { background: var(--line); }
         .suggest .msg { padding: 8px 10px; font-size: 12px; color: var(--muted); }
 
-        .tabs { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid var(--line); }
+        .tabs { display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid var(--line); }
         .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); padding: 6px 10px 8px; font-weight: 600; font-size: 13px; }
         .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
-        .tabs .n { color: var(--faint); font-weight: 500; }
+        .tabs .n { color: var(--faint); font-weight: 500; font-variant-numeric: tabular-nums; }
+        .tabs button.on .n { color: var(--accent); }
 
         .card { cursor: pointer; }
         .card-bottom .right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -176,7 +218,7 @@
         .toast[hidden] { display: none; }
 
         .label-hint { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); }
-        .filters { padding: 10px 16px 8px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+        .filters { padding: 10px 14px 8px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
         body[data-tab="shortlist"] .filters { display: none; }
         .filter-row { display: flex; gap: 6px; }
         .filter-row #search { flex: 1; min-width: 0; }
@@ -184,13 +226,7 @@
         .comp-btn { width: auto; white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 5px; }
         .comp-btn .n { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
         .comp-btn[aria-expanded="true"] { border-color: var(--accent); }
-        .comp-pop {
-            position: absolute; top: calc(100% + 6px); right: 0; z-index: 1500;
-            width: min(340px, calc(100vw - 32px)); max-height: min(60vh, 460px); overflow-y: auto;
-            background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
-            padding: 10px 12px 12px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
-        }
-        .comp-pop[hidden] { display: none; }
+        .comp-pop { left: auto; right: 0; width: min(340px, calc(100vw - 32px)); max-height: min(60vh, 460px); overflow-y: auto; padding: 10px 12px 12px; }
         .comp-pop-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
         .comp-groups { display: grid; gap: 10px; }
 
@@ -215,11 +251,7 @@
         .seg button { border: 0; background: var(--bg); color: var(--muted); padding: 3px 9px; font-size: 12px; }
         .seg button.on { background: var(--panel-2); color: var(--text); }
 
-        .status {
-            padding: 8px 16px; font-size: 12px; color: var(--muted);
-            border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px;
-            min-height: 36px;
-        }
+        .status { margin-left: auto; align-self: center; padding-bottom: 2px; font-size: 11.5px; color: var(--muted); display: flex; gap: 10px; white-space: nowrap; }
         .status .count { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
         .status .err { color: var(--warn); }
         .spinner { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; vertical-align: -2px; margin-right: 6px; }
@@ -357,7 +389,7 @@
             }
             .view-switch button { border: 0; background: none; color: var(--muted); padding: 7px 18px; border-radius: 999px; font-weight: 600; }
             .view-switch button.on { background: var(--accent); color: var(--accent-ink); }
-            footer.foot { padding-bottom: 72px; }
+            .list { padding-bottom: 80px; }
             .resizer { display: none; }
         }
     </style>
@@ -367,80 +399,94 @@
 <aside class="sidebar">
     <header class="brand">
         <div class="brand-logo" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
         </div>
-        <div>
-            <h1>Footy<span>Planner</span></h1>
-            <p>Which games are on where you're going</p>
+        <h1>Footy<span>Planner</span></h1>
+        <div class="pop-wrap">
+            <button type="button" class="icon-btn head-btn" id="optBtn" aria-haspopup="dialog" aria-expanded="false" title="View options" aria-label="View options">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6"/></svg>
+            </button>
+            <div class="pop opt-pop" id="optPop" role="dialog" aria-label="View options" hidden>
+                <div class="opt">Kick-off times
+                    <span class="seg" id="tzSeg"><button data-tz="venue" title="Kick-off in the stadium's local time">Stadium</button><button data-tz="mine" title="Kick-off in your device's time zone">Mine</button></span>
+                </div>
+                <label class="opt">Only list matches on the map
+                    <input type="checkbox" id="inView" class="switch" role="switch">
+                </label>
+                <p class="opt-note">Data: <a href="https://www.espn.com/soccer/" target="_blank" rel="noopener">ESPN</a> · <a href="https://photon.komoot.io" target="_blank" rel="noopener">OpenStreetMap</a>. Always check kick-off times before booking.</p>
+            </div>
         </div>
     </header>
 
-    <section class="controls">
-        <div>
-            <div class="label">Dates</div>
-            <div class="row">
-                <div class="range">
-                    <button type="button" class="field range-btn" id="rangeBtn" aria-haspopup="dialog" aria-expanded="false">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
-                        <span id="rangeText"></span>
-                    </button>
-                    <div class="cal-pop" id="calPop" role="dialog" aria-label="Choose dates" hidden>
-                        <div class="cal-head">
-                            <button type="button" class="cal-nav" data-nav="-1" aria-label="Previous month">‹</button>
-                            <span id="calTitle"></span>
-                            <button type="button" class="cal-nav" data-nav="1" aria-label="Next month">›</button>
-                        </div>
-                        <div class="cal-grid" id="calGrid"></div>
-                        <div class="cal-hint" id="calHint"></div>
-                    </div>
+    <section class="trip">
+        <div class="pop-wrap range">
+            <button type="button" class="trip-btn" id="rangeBtn" aria-haspopup="dialog" aria-expanded="false" title="Dates">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                <span id="rangeText" class="pill-text"></span>
+            </button>
+            <div class="pop cal-pop" id="calPop" role="dialog" aria-label="Choose dates" hidden>
+                <div class="presets" id="presets">
+                    <button class="chip" data-preset="weekend" title="This weekend (Fri–Sun)">This weekend</button>
+                    <button class="chip" data-preset="7" title="Today and the next 6 days">7 days</button>
+                    <button class="chip" data-preset="14" title="Today and the next 13 days">14 days</button>
+                    <button class="chip" data-preset="30" title="Today and the next 29 days">30 days</button>
                 </div>
-            </div>
-            <div class="presets" id="presets">
-                <button class="chip" data-preset="weekend" title="This weekend (Fri–Sun)">This weekend</button>
-                <button class="chip" data-preset="7" title="Today and the next 6 days">7 days</button>
-                <button class="chip" data-preset="14" title="Today and the next 13 days">14 days</button>
-                <button class="chip" data-preset="30" title="Today and the next 29 days">30 days</button>
+                <div class="cal-head">
+                    <button type="button" class="cal-nav" data-nav="-1" aria-label="Previous month">‹</button>
+                    <span id="calTitle"></span>
+                    <button type="button" class="cal-nav" data-nav="1" aria-label="Next month">›</button>
+                </div>
+                <div class="cal-grid" id="calGrid"></div>
+                <div class="cal-hint" id="calHint"></div>
             </div>
         </div>
-
-        <div class="near">
-            <div class="label">Near <span class="label-hint">optional</span></div>
-            <div class="near-row">
+        <div class="pop-wrap near">
+            <button type="button" class="trip-btn" id="nearBtn" aria-haspopup="dialog" aria-expanded="false" title="Find matches near a place">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                <span id="nearText" class="pill-text">Anywhere</span>
+            </button>
+            <div class="pop near-pop" id="nearPop" role="dialog" aria-label="Near a place" hidden>
                 <div class="near-box">
-                    <input type="text" id="nearInput" class="field" placeholder="Near… city, hotel or address" autocomplete="off" aria-label="Find matches near a place" aria-autocomplete="list" aria-controls="nearSuggest">
+                    <input type="text" id="nearInput" class="field" placeholder="City, hotel or address" autocomplete="off" aria-label="Find matches near a place" aria-autocomplete="list" aria-controls="nearSuggest">
                     <button type="button" id="nearClear" class="near-clear" aria-label="Clear place" hidden>×</button>
                     <div class="suggest" id="nearSuggest" role="listbox" hidden></div>
                 </div>
-                <button type="button" id="nearMe" class="field icon-btn" title="Use my location" aria-label="Use my location">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-                </button>
-                <select id="nearRadius" class="field radius" aria-label="Distance">
-                    <option value="25">25 km</option>
-                    <option value="50">50 km</option>
-                    <option value="100">100 km</option>
-                    <option value="200">200 km</option>
-                    <option value="400">400 km</option>
-                </select>
+                <div class="chips-row">
+                    <button type="button" class="chip" id="nearMe" title="Use my location">📍 My location</button>
+                </div>
+                <div class="pop-label">Within</div>
+                <div class="chips-row" id="nearRadius">
+                    <button type="button" class="chip" data-radius="25">25 km</button>
+                    <button type="button" class="chip" data-radius="50">50 km</button>
+                    <button type="button" class="chip" data-radius="100">100 km</button>
+                    <button type="button" class="chip" data-radius="200">200 km</button>
+                    <button type="button" class="chip" data-radius="400">400 km</button>
+                </div>
+                <div id="sortWrap" hidden>
+                    <div class="pop-label">Sort matches by</div>
+                    <span class="seg" id="sortSeg"><button data-sort="time">Time</button><button data-sort="distance">Distance</button></span>
+                </div>
             </div>
         </div>
-
     </section>
 
     <div class="tabs" id="tabs" role="tablist">
-        <button type="button" role="tab" data-tab="all">Matches</button>
+        <button type="button" role="tab" data-tab="all">Matches <span class="n" id="matchCount"></span></button>
         <button type="button" role="tab" data-tab="shortlist">★ Shortlist <span class="n" id="starCount"></span></button>
+        <div class="status" id="status" aria-live="polite"></div>
     </div>
+    <div class="progress" id="progress" hidden><div></div></div>
 
     <section class="filters" aria-label="Filter matches">
         <div class="filter-row">
-            <input type="search" id="search" class="field" placeholder="Search team, city or stadium…" autocomplete="off">
-            <div class="comp-menu">
+            <input type="search" id="search" class="field" placeholder="Team, city or stadium" autocomplete="off">
+            <div class="pop-wrap comp-menu">
                 <button type="button" class="field comp-btn" id="compBtn" aria-haspopup="dialog" aria-expanded="false">
-                    Competitions <span class="n" id="compSummary"></span> <span aria-hidden="true">▾</span>
+                    Leagues <span class="n" id="compSummary"></span> <span aria-hidden="true">▾</span>
                 </button>
-                <div class="comp-pop" id="compPop" role="dialog" aria-label="Competitions" hidden>
+                <div class="pop comp-pop" id="compPop" role="dialog" aria-label="Leagues" hidden>
                     <div class="comp-pop-head">
-                        <span>Show competitions</span>
+                        <span>Show leagues</span>
                         <span>
                             <button class="link-btn" id="compAll" type="button">All</button> ·
                             <button class="link-btn" id="compBig" type="button">Big 5 + UEFA</button>
@@ -451,23 +497,9 @@
             </div>
         </div>
         <div class="days" id="days"></div>
-        <div class="toggles">
-            <label title="Only list matches inside the visible map area"><input type="checkbox" id="inView"> Only what's on the map</label>
-            <span>Times: <span class="seg" id="tzSeg">
-                <button data-tz="venue" title="Kick-off in the stadium's local time">Local</button><button data-tz="mine" title="Kick-off in your device's time zone">Mine</button>
-            </span></span>
-            <span id="sortWrap" hidden>Sort: <span class="seg" id="sortSeg">
-                <button data-sort="time">Time</button><button data-sort="distance">Distance</button>
-            </span></span>
-        </div>
     </section>
 
-    <div class="status" id="status"></div>
     <div class="list" id="list" aria-live="polite"></div>
-
-    <footer class="foot">
-        Data: <a href="https://www.espn.com/soccer/" target="_blank" rel="noopener">ESPN</a> · <a href="https://photon.komoot.io" target="_blank" rel="noopener">OpenStreetMap</a>. Check kick-off times before booking.
-    </footer>
     <div class="resizer" id="resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" tabindex="0" title="Drag to resize · double-click to reset"></div>
 </aside>
 
@@ -1434,18 +1466,19 @@ function render() {
 }
 
 function renderStatus(count) {
-    const el = $('status');
     const total = state.enabled.size;
     const loading = state.loading.size;
-    const failed = state.failed.size;
-    const parts = [];
-    if (loading) parts.push(`<span><span class="spinner"></span>Loading ${total - loading}/${total} competitions…</span>`);
-    else if (state.tab === 'shortlist') parts.push(`<span><span class="count">${state.starred.size}</span> saved</span>`);
-    else if (count != null) parts.push(`<span><span class="count">${count}</span> ${count === 1 ? 'match' : 'matches'}</span>`);
-    const right = [];
-    if (state.geocodePending > 0) right.push(`<span><span class="spinner"></span>Finding ${state.geocodePending} grounds</span>`);
-    if (failed) right.push(`<span class="err" title="${esc([...state.failed.keys()].map(s => COMP_BY_SLUG[s].name).join(', '))}">${failed} failed · <button class="link-btn" data-action="retry">retry</button></span>`);
-    el.innerHTML = `${parts.join('') || '<span></span>'}<span style="display:flex;gap:10px">${right.join('')}</span>`;
+    if (count != null) $('matchCount').textContent = loading && !count ? '' : String(count);
+    $('progress').hidden = !loading;
+    $('progress').firstElementChild.style.width = `${total ? Math.round((total - loading) / total * 100) : 0}%`;
+    const bits = [];
+    if (loading) bits.push(`<span>Loading ${total - loading}/${total}…</span>`);
+    else if (state.geocodePending > 0) bits.push(`<span title="Looking up stadium locations"><span class="spinner"></span>${state.geocodePending} grounds</span>`);
+    if (state.failed.size) {
+        const names = [...state.failed.keys()].map(sl => COMP_BY_SLUG[sl].name).join(', ');
+        bits.push(`<span class="err" title="Couldn't load: ${esc(names)}">${state.failed.size} failed · <button class="link-btn" data-action="retry">retry</button></span>`);
+    }
+    $('status').innerHTML = bits.join('');
 }
 
 function renderDays(dayCounts) {
@@ -1694,14 +1727,15 @@ const picker = { open: false, anchor: null, hover: null, month: '' }; // month =
 
 function renderRangeText() {
     const n = dayDiff(state.start, state.end) + 1;
-    const sameYear = state.start.slice(0, 4) === state.end.slice(0, 4) && state.start.slice(0, 4) === isoDay(new Date()).slice(0, 4);
-    const fmt = d => {
-        const [y, m, dd] = d.split('-').map(Number);
-        return new Date(y, m - 1, dd).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
-    };
-    $('rangeText').innerHTML = state.start === state.end
-        ? `${esc(fmt(state.start))} <span class="n">1 day</span>`
-        : `${esc(fmt(state.start))} – ${esc(fmt(state.end))} <span class="n">${n} days</span>`;
+    const thisYear = isoDay(new Date()).slice(0, 4);
+    const parts = d => { const [y, m, dd] = d.split('-').map(Number); return { y, dd, mon: new Date(y, m - 1, dd).toLocaleDateString('en-GB', { month: 'short' }) }; };
+    const a = parts(state.start), b = parts(state.end);
+    const year = String(b.y) !== thisYear ? ` ${b.y}` : '';
+    let text;
+    if (state.start === state.end) text = `${a.dd} ${a.mon}${year}`;
+    else if (a.mon === b.mon && a.y === b.y) text = `${a.dd}–${b.dd} ${b.mon}${year}`;
+    else text = `${a.dd} ${a.mon}${a.y !== b.y ? ' ' + a.y : ''} – ${b.dd} ${b.mon}${year}`;
+    $('rangeText').innerHTML = `${esc(text)} <span class="n">${n} day${n > 1 ? 's' : ''}</span>`;
 }
 
 function renderCalendar() {
@@ -1981,7 +2015,7 @@ function renderTabs() {
         b.classList.toggle('on', b.dataset.tab === state.tab);
         b.setAttribute('aria-selected', String(b.dataset.tab === state.tab));
     });
-    $('starCount').textContent = state.starred.size ? `(${state.starred.size})` : '';
+    $('starCount').textContent = state.starred.size ? String(state.starred.size) : '';
     $('sortWrap').hidden = !state.near || state.tab === 'shortlist';
     document.querySelectorAll('#sortSeg button').forEach(b => b.classList.toggle('on', b.dataset.sort === state.sort));
 }
@@ -2103,8 +2137,7 @@ function setNear(place, { fit = true } = {}) {
     state.near = place;
     store.set('fp:near', place);
     if (!place) { state.sort = 'time'; store.set('fp:sort', 'time'); }
-    $('nearInput').value = place ? place.name : '';
-    $('nearClear').hidden = !place;
+    renderNearControls();
     renderNear(fit);
     render();
 }
@@ -2130,12 +2163,19 @@ function placeLabel(props) {
     return { name, sub };
 }
 
+function renderNearControls() {
+    const near = state.near;
+    $('nearText').textContent = near ? `${near.name} · ${state.radius} km` : 'Anywhere';
+    $('nearBtn').classList.toggle('set', !!near);
+    $('nearInput').value = near ? near.name : '';
+    $('nearClear').hidden = !near;
+    document.querySelectorAll('#nearRadius [data-radius]').forEach(b => b.classList.toggle('on', +b.dataset.radius === state.radius));
+}
+
 function initNear() {
     const input = $('nearInput'), box = $('nearSuggest');
     let results = [], active = -1, timer, seq = 0;
-    $('nearRadius').value = String(state.radius);
-    input.value = state.near ? state.near.name : '';
-    $('nearClear').hidden = !state.near;
+    renderNearControls();
 
     const close = () => { box.hidden = true; active = -1; };
     const show = html => { box.innerHTML = html; box.hidden = false; };
@@ -2146,6 +2186,7 @@ function initNear() {
         const r = results[i];
         if (!r) return;
         close();
+        setPopover('near', false);
         setNear({ name: r.name, lat: r.lat, lng: r.lng });
     };
 
@@ -2181,9 +2222,12 @@ function initNear() {
     input.addEventListener('blur', () => setTimeout(close, 150));
 
     $('nearClear').addEventListener('click', () => { setNear(null); input.focus(); });
-    $('nearRadius').addEventListener('change', e => {
-        state.radius = +e.target.value;
+    $('nearRadius').addEventListener('click', e => {
+        const b = e.target.closest('[data-radius]');
+        if (!b) return;
+        state.radius = +b.dataset.radius;
         store.set('fp:radius', state.radius);
+        renderNearControls();
         renderNear(true);
         render();
     });
@@ -2193,6 +2237,7 @@ function initNear() {
         navigator.geolocation.getCurrentPosition(
             pos => {
                 $('nearMe').classList.remove('busy');
+                setPopover('near', false);
                 setNear({ name: 'My location', lat: pos.coords.latitude, lng: pos.coords.longitude });
             },
             err => {
@@ -2208,6 +2253,32 @@ function initNear() {
         state.sort = b.dataset.sort;
         store.set('fp:sort', state.sort);
         render();
+    });
+}
+
+/* ---------- Simple popovers (place, view options) ---------- */
+
+const POPOVERS = { near: ['nearBtn', 'nearPop'], opt: ['optBtn', 'optPop'] };
+
+function setPopover(name, open) {
+    const [btnId, popId] = POPOVERS[name];
+    $(popId).hidden = !open;
+    $(btnId).setAttribute('aria-expanded', String(open));
+    if (open && name === 'near') setTimeout(() => $('nearInput').focus(), 0);
+}
+
+function initPopovers() {
+    for (const [name, [btnId, popId]] of Object.entries(POPOVERS)) {
+        $(btnId).addEventListener('click', () => setPopover(name, $(popId).hidden));
+        document.addEventListener('mousedown', e => {
+            if (!$(popId).hidden && !e.target.closest(`#${popId}`) && !e.target.closest(`#${btnId}`)) setPopover(name, false);
+        });
+    }
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        for (const [name, [btnId, popId]] of Object.entries(POPOVERS)) {
+            if (!$(popId).hidden && $('nearSuggest').hidden) { setPopover(name, false); $(btnId).focus(); }
+        }
     });
 }
 
@@ -2375,10 +2446,12 @@ function initMap() {
 function initControls() {
     initRangePicker();
     initCompMenu();
+    initPopovers();
     $('presets').addEventListener('click', e => {
         const btn = e.target.closest('[data-preset]');
         if (!btn) return;
         const [s, en] = presetRange(btn.dataset.preset, isoDay(new Date()));
+        closePicker();
         setRange(s, en);
     });
 
@@ -2484,9 +2557,7 @@ function init() {
     // A shared link wins; otherwise restore the last range if it's still current, else the next 14 days.
     const shared = applyShareHash();
     renderCompPicker();
-    $('nearRadius').value = String(state.radius);
-    $('nearInput').value = state.near ? state.near.name : '';
-    $('nearClear').hidden = !state.near;
+    renderNearControls();
     const today = isoDay(new Date());
     const saved = store.get('fp:range', null);
     if (shared) setRange(shared[0], shared[1], { load: false });

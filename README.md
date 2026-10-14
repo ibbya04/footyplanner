@@ -10,12 +10,12 @@ Open `index.html` in a browser, or deploy it to Vercel (see below) for faster lo
 - **Stadium locations:** ESPN gives the venue name, city and country, but no coordinates.
   - Most stadiums come from the `KNOWN_VENUES` table built into `index.html`, so their pins appear instantly.
   - Any other venue is looked up with [Photon](https://photon.komoot.io) (OpenStreetMap). The city is found first, so the match gets a pin right away (dashed border), and the pin then moves to the exact ground once it's found within 40 km. If the ground can't be found, the pin stays on the city. Lookups are cached in `localStorage` permanently.
-- **Kick-off times** use the stadium's time zone, worked out from its country, with your own time shown next to it. The Local/Mine toggle switches between the two.
+- **Kick-off times** use the stadium's time zone, worked out from its country, with your own time shown next to it. The view options menu (top right of the panel) switches between stadium time and your own.
 - **Map tiles** come from Esri basemaps, which need no key and also work when the page is opened as a local file.
 
 ## Planning a trip
 
-- **Near:** type a city, hotel or address, or tap the location button for where you are now. Then pick a distance (25–400 km). Only matches within that circle are listed, each with its distance and a rough travel time. Driving is estimated from straight-line distance; beyond 600 km it assumes a flight with about 3 hours of airports. You can sort by time or distance.
+- **Near:** tap the place button next to the dates, then type a city, hotel or address, or use your current location. Then pick a distance (25–400 km). Only matches within that circle are listed, each with its distance and a rough travel time. Driving is estimated from straight-line distance; beyond 600 km it assumes a flight with about 3 hours of airports. You can sort by time or distance.
 - **Shortlist:** tap ☆ on any match or map popup.
   - The Shortlist tab lists your picks as a day-by-day itinerary with travel between games. It warns about same-time kick-offs, overlaps, and trips you can't make between the final whistle and the next kick-off. The route is drawn on the map.
   - "Add all to calendar" downloads an `.ics` file. Matches without a confirmed time become all-day events marked "time TBC".
@@ -25,7 +25,7 @@ Open `index.html` in a browser, or deploy it to Vercel (see below) for faster lo
 
 ## Competitions
 
-To add or remove a competition, edit the `COMPETITIONS` list in `index.html`. Each entry is an ESPN league slug, for example `ned.1` or `eng.fa`. "Big 5 + UEFA" is the default selection, and you can turn on more from the Competitions button above the match list.
+To add or remove a competition, edit the `COMPETITIONS` list in `index.html`. Each entry is an ESPN league slug, for example `ned.1` or `eng.fa`. "Big 5 + UEFA" is the default selection, and you can turn on more from the Leagues button above the match list.
 
 ## Updating the stadium list
 
