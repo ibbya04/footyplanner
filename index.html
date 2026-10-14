@@ -44,6 +44,7 @@
 
         /* ---------- Layout ---------- */
         .sidebar {
+            position: relative;
             width: var(--sidebar);
             flex-shrink: 0;
             display: flex;
@@ -174,11 +175,34 @@
         }
         .toast[hidden] { display: none; }
 
-        details.comps > summary { list-style: none; cursor: pointer; }
-        details.comps > summary::-webkit-details-marker { display: none; }
-        details.comps > summary .caret { transition: transform .15s; display: inline-block; }
-        details.comps[open] > summary .caret { transform: rotate(90deg); }
-        .comp-groups { display: grid; gap: 8px; margin-top: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+        .label-hint { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); }
+        .filters { padding: 10px 16px 8px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+        body[data-tab="shortlist"] .filters { display: none; }
+        .filter-row { display: flex; gap: 6px; }
+        .filter-row #search { flex: 1; min-width: 0; }
+        .comp-menu { position: relative; flex-shrink: 0; }
+        .comp-btn { width: auto; white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .comp-btn .n { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .comp-btn[aria-expanded="true"] { border-color: var(--accent); }
+        .comp-pop {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 1500;
+            width: min(340px, calc(100vw - 32px)); max-height: min(60vh, 460px); overflow-y: auto;
+            background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+            padding: 10px 12px 12px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
+        }
+        .comp-pop[hidden] { display: none; }
+        .comp-pop-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+        .comp-groups { display: grid; gap: 10px; }
+
+        .resizer {
+            position: absolute; top: 0; right: -4px; width: 8px; height: 100%; z-index: 5;
+            cursor: col-resize; touch-action: none;
+        }
+        .resizer::after { content: ''; position: absolute; left: 3px; top: 0; bottom: 0; width: 2px; background: transparent; transition: background .15s; }
+        .resizer:hover::after, .resizer:focus-visible::after, body.resizing .resizer::after { background: var(--accent); }
+        .resizer:focus-visible { outline: none; }
+        body.resizing { cursor: col-resize; user-select: none; }
+        body.resizing #map { pointer-events: none; }
         .comp-group-title { font-size: 11px; color: var(--faint); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
         .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
         .comp-group .chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -201,7 +225,7 @@
         .spinner { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; vertical-align: -2px; margin-right: 6px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .days { display: flex; gap: 6px; overflow-x: auto; padding: 8px 16px; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+        .days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
         .days:empty { display: none; }
 
         .list { flex: 1; overflow-y: auto; padding: 4px 12px 16px; min-height: 0; }
@@ -334,7 +358,7 @@
             .view-switch button { border: 0; background: none; color: var(--muted); padding: 7px 18px; border-radius: 999px; font-weight: 600; }
             .view-switch button.on { background: var(--accent); color: var(--accent-ink); }
             footer.foot { padding-bottom: 72px; }
-            .comp-groups { max-height: 200px; }
+            .resizer { display: none; }
         }
     </style>
 </head>
@@ -372,28 +396,15 @@
                 </div>
             </div>
             <div class="presets" id="presets">
-                <button class="chip" data-preset="weekend">This weekend</button>
-                <button class="chip" data-preset="7">Next 7 days</button>
-                <button class="chip" data-preset="14">Next 14 days</button>
-                <button class="chip" data-preset="30">Next 30 days</button>
+                <button class="chip" data-preset="weekend" title="This weekend (Fri–Sun)">This weekend</button>
+                <button class="chip" data-preset="7" title="Today and the next 6 days">7 days</button>
+                <button class="chip" data-preset="14" title="Today and the next 13 days">14 days</button>
+                <button class="chip" data-preset="30" title="Today and the next 29 days">30 days</button>
             </div>
         </div>
 
-        <details class="comps" id="compsDetails">
-            <summary class="label"><span><span class="caret">▸</span> Competitions <span id="compSummary" style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)"></span></span>
-                <span>
-                    <button class="link-btn" id="compAll" type="button">All</button> ·
-                    <button class="link-btn" id="compBig" type="button">Big 5 + UEFA</button>
-                </span>
-            </summary>
-            <div class="comp-groups" id="compGroups"></div>
-        </details>
-
-        <div class="row" style="align-items:center">
-            <input type="search" id="search" class="field" placeholder="Search team, city or stadium…" autocomplete="off">
-        </div>
-
         <div class="near">
+            <div class="label">Near <span class="label-hint">optional</span></div>
             <div class="near-row">
                 <div class="near-box">
                     <input type="text" id="nearInput" class="field" placeholder="Near… city, hotel or address" autocomplete="off" aria-label="Find matches near a place" aria-autocomplete="list" aria-controls="nearSuggest">
@@ -413,6 +424,33 @@
             </div>
         </div>
 
+    </section>
+
+    <div class="tabs" id="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="all">Matches</button>
+        <button type="button" role="tab" data-tab="shortlist">★ Shortlist <span class="n" id="starCount"></span></button>
+    </div>
+
+    <section class="filters" aria-label="Filter matches">
+        <div class="filter-row">
+            <input type="search" id="search" class="field" placeholder="Search team, city or stadium…" autocomplete="off">
+            <div class="comp-menu">
+                <button type="button" class="field comp-btn" id="compBtn" aria-haspopup="dialog" aria-expanded="false">
+                    Competitions <span class="n" id="compSummary"></span> <span aria-hidden="true">▾</span>
+                </button>
+                <div class="comp-pop" id="compPop" role="dialog" aria-label="Competitions" hidden>
+                    <div class="comp-pop-head">
+                        <span>Show competitions</span>
+                        <span>
+                            <button class="link-btn" id="compAll" type="button">All</button> ·
+                            <button class="link-btn" id="compBig" type="button">Big 5 + UEFA</button>
+                        </span>
+                    </div>
+                    <div class="comp-groups" id="compGroups"></div>
+                </div>
+            </div>
+        </div>
+        <div class="days" id="days"></div>
         <div class="toggles">
             <label title="Only list matches inside the visible map area"><input type="checkbox" id="inView"> Only what's on the map</label>
             <span>Times: <span class="seg" id="tzSeg">
@@ -424,17 +462,13 @@
         </div>
     </section>
 
-    <div class="tabs" id="tabs" role="tablist">
-        <button type="button" role="tab" data-tab="all">Matches</button>
-        <button type="button" role="tab" data-tab="shortlist">★ Shortlist <span class="n" id="starCount"></span></button>
-    </div>
     <div class="status" id="status"></div>
-    <div class="days" id="days"></div>
     <div class="list" id="list" aria-live="polite"></div>
 
     <footer class="foot">
-        Fixtures: <a href="https://www.espn.com/soccer/" target="_blank" rel="noopener">ESPN</a> (unofficial feed) · Locations: <a href="https://photon.komoot.io" target="_blank" rel="noopener">Photon</a>/OpenStreetMap. Always double-check kick-off times before booking.
+        Data: <a href="https://www.espn.com/soccer/" target="_blank" rel="noopener">ESPN</a> · <a href="https://photon.komoot.io" target="_blank" rel="noopener">OpenStreetMap</a>. Check kick-off times before booking.
     </footer>
+    <div class="resizer" id="resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" tabindex="0" title="Drag to resize · double-click to reset"></div>
 </aside>
 
 <main class="map-wrap">
@@ -1597,7 +1631,8 @@ function renderCompPicker() {
         return `<div class="comp-group"><div class="comp-group-title"><span class="dot" style="background:${g.color}"></span>${esc(g.name)}</div><div class="chips">${chips}</div></div>`;
     }).join('');
     $('compGroups').innerHTML = groups;
-    $('compSummary').textContent = `(${state.enabled.size} of ${COMPETITIONS.length})`;
+    $('compSummary').textContent = state.enabled.size === COMPETITIONS.length ? 'All' : String(state.enabled.size);
+    $('compBtn').title = `${state.enabled.size} of ${COMPETITIONS.length} competitions shown`;
     renderLegend();
 }
 
@@ -1930,6 +1965,7 @@ function renderRoute(items) {
 }
 
 function renderTabs() {
+    document.body.dataset.tab = state.tab;
     document.querySelectorAll('#tabs [data-tab]').forEach(b => {
         b.classList.toggle('on', b.dataset.tab === state.tab);
         b.setAttribute('aria-selected', String(b.dataset.tab === state.tab));
@@ -2164,6 +2200,83 @@ function initNear() {
     });
 }
 
+/* ---------- Competitions dropdown ---------- */
+
+function setCompMenu(open) {
+    $('compPop').hidden = !open;
+    $('compBtn').setAttribute('aria-expanded', String(open));
+}
+
+function initCompMenu() {
+    $('compBtn').addEventListener('click', () => setCompMenu($('compPop').hidden));
+    document.addEventListener('mousedown', e => {
+        if (!$('compPop').hidden && !e.target.closest('.comp-menu')) setCompMenu(false);
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !$('compPop').hidden) { setCompMenu(false); $('compBtn').focus(); }
+    });
+}
+
+/* ---------- Resizable sidebar ---------- */
+
+const SIDEBAR_DEFAULT = 400;
+const SIDEBAR_MIN = 300;
+const sidebarMax = () => Math.max(SIDEBAR_MIN, Math.min(760, window.innerWidth - 320)); // always leave some map
+
+function sidebarWidth() {
+    return document.querySelector('.sidebar').getBoundingClientRect().width;
+}
+
+function setSidebarWidth(px, save) {
+    const w = Math.round(Math.min(sidebarMax(), Math.max(SIDEBAR_MIN, px)));
+    document.documentElement.style.setProperty('--sidebar', `${w}px`);
+    $('resizer').setAttribute('aria-valuenow', String(w));
+    if (save) store.set('fp:sidebar', w);
+    if (map) map.invalidateSize({ pan: false });
+}
+
+function initResizer() {
+    const handle = $('resizer');
+    handle.setAttribute('aria-valuemin', String(SIDEBAR_MIN));
+    handle.setAttribute('aria-valuemax', String(sidebarMax()));
+    setSidebarWidth(store.get('fp:sidebar', SIDEBAR_DEFAULT), false);
+
+    handle.addEventListener('pointerdown', down => {
+        down.preventDefault();
+        handle.setPointerCapture(down.pointerId);
+        document.body.classList.add('resizing');
+        const left = document.querySelector('.sidebar').getBoundingClientRect().left;
+        let frame = 0;
+        const move = e => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => setSidebarWidth(e.clientX - left, false));
+        };
+        const up = () => {
+            cancelAnimationFrame(frame);
+            handle.removeEventListener('pointermove', move);
+            handle.removeEventListener('pointerup', up);
+            handle.removeEventListener('pointercancel', up);
+            document.body.classList.remove('resizing');
+            setSidebarWidth(sidebarWidth(), true);
+        };
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', up);
+        handle.addEventListener('pointercancel', up);
+    });
+    handle.addEventListener('dblclick', () => setSidebarWidth(SIDEBAR_DEFAULT, true));
+    handle.addEventListener('keydown', e => {
+        const step = e.shiftKey ? 60 : 20;
+        if (e.key === 'ArrowLeft') setSidebarWidth(sidebarWidth() - step, true);
+        else if (e.key === 'ArrowRight') setSidebarWidth(sidebarWidth() + step, true);
+        else return;
+        e.preventDefault();
+    });
+    window.addEventListener('resize', () => {
+        handle.setAttribute('aria-valuemax', String(sidebarMax()));
+        if (sidebarWidth() > sidebarMax()) setSidebarWidth(sidebarMax(), false);
+    });
+}
+
 function selectCard(id, fromList) {
     state.selectedId = id;
     document.querySelectorAll('.card.sel').forEach(c => c.classList.remove('sel'));
@@ -2250,6 +2363,7 @@ function initMap() {
 
 function initControls() {
     initRangePicker();
+    initCompMenu();
     $('presets').addEventListener('click', e => {
         const btn = e.target.closest('[data-preset]');
         if (!btn) return;
@@ -2351,6 +2465,7 @@ function init() {
     }
     pruneFixtureCache();
     initMap();
+    initResizer();
     initControls();
     renderCompPicker();
     renderTzSeg();

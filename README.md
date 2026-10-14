@@ -25,7 +25,7 @@ Open `index.html` in a browser, or deploy it to Vercel (see below) for faster lo
 
 ## Competitions
 
-To add or remove a competition, edit the `COMPETITIONS` list in `index.html`. Each entry is an ESPN league slug, for example `ned.1` or `eng.fa`. "Big 5 + UEFA" is the default selection, and you can turn on more in the Competitions panel.
+To add or remove a competition, edit the `COMPETITIONS` list in `index.html`. Each entry is an ESPN league slug, for example `ned.1` or `eng.fa`. "Big 5 + UEFA" is the default selection, and you can turn on more from the Competitions button above the match list.
 
 ## Updating the stadium list
 
