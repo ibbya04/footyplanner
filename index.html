@@ -94,6 +94,36 @@
         .link-btn { background: none; border: 0; padding: 0; color: var(--muted); font-size: 12px; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; }
         .link-btn:hover { color: var(--text); }
 
+        .range { position: relative; }
+        .range-btn { display: flex; align-items: center; gap: 8px; text-align: left; cursor: pointer; }
+        .range-btn svg { color: var(--muted); flex-shrink: 0; }
+        .range-btn .n { margin-left: auto; color: var(--faint); font-size: 12px; }
+        .cal-pop {
+            position: absolute; top: calc(100% + 6px); left: 0; z-index: 1500;
+            width: 300px; max-width: calc(100vw - 32px);
+            background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+            padding: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
+        }
+        .cal-pop[hidden] { display: none; }
+        .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 600; }
+        .cal-nav { background: none; border: 0; color: var(--muted); font-size: 20px; line-height: 1; width: 32px; height: 32px; border-radius: 8px; }
+        .cal-nav:hover { background: var(--bg); color: var(--text); }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px 0; }
+        .cal-dow { text-align: center; font-size: 11px; color: var(--faint); padding: 4px 0; }
+        .cal-day {
+            height: 36px; border: 0; background: none; color: var(--text); font-size: 13px;
+            font-variant-numeric: tabular-nums; border-radius: 0;
+        }
+        .cal-day:hover:not(:disabled):not(.start):not(.end) { background: var(--line); border-radius: 8px; }
+        .cal-day.in { background: rgba(16,185,129,.18); }
+        .cal-day.start, .cal-day.end { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+        .cal-day.start { border-radius: 8px 0 0 8px; }
+        .cal-day.end { border-radius: 0 8px 8px 0; }
+        .cal-day.start.end { border-radius: 8px; }
+        .cal-day.today { box-shadow: inset 0 0 0 1px var(--muted); border-radius: 8px; }
+        .cal-day:disabled { color: var(--faint); opacity: .4; cursor: not-allowed; }
+        .cal-hint { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center; }
+
         details.comps > summary { list-style: none; cursor: pointer; }
         details.comps > summary::-webkit-details-marker { display: none; }
         details.comps > summary .caret { transition: transform .15s; display: inline-block; }
@@ -275,8 +305,21 @@
         <div>
             <div class="label">Dates</div>
             <div class="row">
-                <input type="date" id="startDate" class="field" aria-label="From">
-                <input type="date" id="endDate" class="field" aria-label="To">
+                <div class="range">
+                    <button type="button" class="field range-btn" id="rangeBtn" aria-haspopup="dialog" aria-expanded="false">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                        <span id="rangeText"></span>
+                    </button>
+                    <div class="cal-pop" id="calPop" role="dialog" aria-label="Choose dates" hidden>
+                        <div class="cal-head">
+                            <button type="button" class="cal-nav" data-nav="-1" aria-label="Previous month">‹</button>
+                            <span id="calTitle"></span>
+                            <button type="button" class="cal-nav" data-nav="1" aria-label="Next month">›</button>
+                        </div>
+                        <div class="cal-grid" id="calGrid"></div>
+                        <div class="cal-hint" id="calHint"></div>
+                    </div>
+                </div>
             </div>
             <div class="presets" id="presets">
                 <button class="chip" data-preset="weekend">This weekend</button>
@@ -1126,11 +1169,112 @@ function setRange(start, end, { load = true } = {}) {
     if (dayDiff(start, end) + 1 > MAX_RANGE_DAYS) end = addDays(start, MAX_RANGE_DAYS - 1);
     state.start = start;
     state.end = end;
-    $('startDate').value = start;
-    $('endDate').value = end;
+    renderRangeText();
     store.set('fp:range', { start, end, saved: isoDay(new Date()) });
     renderPresets();
     if (load) resetAndLoad();
+}
+
+/* ---------- Date range picker: one calendar, click start then end ---------- */
+
+const picker = { open: false, anchor: null, hover: null, month: '' }; // month = 'YYYY-MM-01'
+
+function renderRangeText() {
+    const n = dayDiff(state.start, state.end) + 1;
+    const sameYear = state.start.slice(0, 4) === state.end.slice(0, 4) && state.start.slice(0, 4) === isoDay(new Date()).slice(0, 4);
+    const fmt = d => {
+        const [y, m, dd] = d.split('-').map(Number);
+        return new Date(y, m - 1, dd).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
+    };
+    $('rangeText').innerHTML = state.start === state.end
+        ? `${esc(fmt(state.start))} <span class="n">1 day</span>`
+        : `${esc(fmt(state.start))} – ${esc(fmt(state.end))} <span class="n">${n} days</span>`;
+}
+
+function renderCalendar() {
+    const [y, m] = picker.month.split('-').map(Number);
+    const first = new Date(y, m - 1, 1);
+    $('calTitle').textContent = first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+    // While choosing the end date, preview the range under the pointer.
+    let lo = state.start, hi = state.end;
+    if (picker.anchor) {
+        lo = picker.anchor;
+        hi = picker.hover && picker.hover >= picker.anchor ? picker.hover : picker.anchor;
+    }
+    const maxEnd = picker.anchor ? addDays(picker.anchor, MAX_RANGE_DAYS - 1) : null;
+    const today = isoDay(new Date());
+
+    const lead = (first.getDay() + 6) % 7; // weeks start on Monday
+    const daysInMonth = new Date(y, m, 0).getDate();
+    let html = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => `<span class="cal-dow">${d}</span>`).join('');
+    html += '<span></span>'.repeat(lead);
+    for (let d = 1; d <= daysInMonth; d++) {
+        const day = isoDay(new Date(y, m - 1, d));
+        const cls = ['cal-day'];
+        if (day >= lo && day <= hi) cls.push('in');
+        if (day === lo) cls.push('start');
+        if (day === hi) cls.push('end');
+        if (day === today) cls.push('today');
+        const disabled = maxEnd && day > maxEnd;
+        html += `<button type="button" class="${cls.join(' ')}" data-pick="${day}" ${disabled ? 'disabled' : ''} aria-label="${esc(formatDayLabel(day))}">${d}</button>`;
+    }
+    $('calGrid').innerHTML = html;
+    $('calHint').textContent = picker.anchor
+        ? `Now pick an end date (up to ${MAX_RANGE_DAYS} days)`
+        : 'Pick a start date';
+}
+
+function openPicker() {
+    picker.open = true;
+    picker.anchor = null;
+    picker.hover = null;
+    picker.month = state.start.slice(0, 8) + '01';
+    $('calPop').hidden = false;
+    $('rangeBtn').setAttribute('aria-expanded', 'true');
+    renderCalendar();
+}
+
+function closePicker() {
+    picker.open = false;
+    picker.anchor = null; // an unfinished selection is discarded
+    $('calPop').hidden = true;
+    $('rangeBtn').setAttribute('aria-expanded', 'false');
+}
+
+function initRangePicker() {
+    $('rangeBtn').addEventListener('click', () => (picker.open ? closePicker() : openPicker()));
+    $('calPop').addEventListener('click', e => {
+        const nav = e.target.closest('[data-nav]');
+        if (nav) {
+            const [y, m] = picker.month.split('-').map(Number);
+            picker.month = isoDay(new Date(y, m - 1 + Number(nav.dataset.nav), 1));
+            return renderCalendar();
+        }
+        const btn = e.target.closest('[data-pick]');
+        if (!btn) return;
+        const day = btn.dataset.pick;
+        if (!picker.anchor || day < picker.anchor) {
+            picker.anchor = day; // first click (or an earlier day) starts the range
+            renderCalendar();
+            return;
+        }
+        const start = picker.anchor;
+        closePicker();
+        setRange(start, day);
+    });
+    $('calGrid').addEventListener('mouseover', e => {
+        const btn = e.target.closest('[data-pick]');
+        if (!picker.anchor || !btn || btn.dataset.pick === picker.hover) return;
+        picker.hover = btn.dataset.pick;
+        renderCalendar();
+    });
+    document.addEventListener('mousedown', e => {
+        if (picker.open && !e.target.closest('.range')) closePicker();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && picker.open) { closePicker(); $('rangeBtn').focus(); }
+    });
 }
 
 function selectCard(id, fromList) {
@@ -1204,8 +1348,7 @@ function initMap() {
 }
 
 function initControls() {
-    $('startDate').addEventListener('change', e => setRange(e.target.value, state.end < e.target.value ? e.target.value : state.end));
-    $('endDate').addEventListener('change', e => setRange(state.start > e.target.value ? e.target.value : state.start, e.target.value));
+    initRangePicker();
     $('presets').addEventListener('click', e => {
         const btn = e.target.closest('[data-preset]');
         if (!btn) return;
