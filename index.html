@@ -1011,7 +1011,7 @@ const KNOWN_VENUES = {
     "v|stade francis-le blé|brest|france": [48.40304, -4.46136, 1],
     "v|stade jean bouin|paris|france": [48.84332, 2.25296, 1],
     "v|stade joseph marien|saint-gilles, brussels|belgium": [50.81793, 4.32951, 1],
-    "v|stade louis ii|monaco|france": [-49.6027, 69.23009, 0],
+    "v|stade louis ii|monaco|france": [43.72762, 7.41556, 1],
     "v|stade marie-marvingt|le mans|france": [47.95917, 0.22311, 1],
     "v|stade océane|le havre|france": [49.49875, 0.16946, 1],
     "v|stade raymond kopa|angers|france": [47.46055, -0.53069, 1],
@@ -1097,12 +1097,18 @@ function venueKey(v) { return `v|${v.name}|${v.city}|${v.country}`.toLowerCase()
 function cityKey(v) { return `c|${v.city}|${v.country}`.toLowerCase(); }
 
 // A cached miss is retried after a week, in case the venue was added to OSM since.
+// Every competition we show is played inside UEFA's footprint: from the Azores and Canaries
+// in the west to Kazakhstan in the east. Anything outside is a geocoding mix-up, e.g.
+// "Monaco, France" matching a place in France's Kerguelen Islands in the Indian Ocean.
+const inUefaRegion = p => p && p.lat > 27 && p.lat < 72 && p.lng > -32 && p.lng < 80;
+
 function cachedGeo(key) {
     const known = KNOWN_VENUES[key];
     if (known) return { lat: known[0], lng: known[1], precision: known[2] ? 'stadium' : 'city' };
     const hit = geoCache[key];
     if (!hit) return undefined;
     if (hit.miss && Date.now() - hit.t > 7 * 86400e3) return undefined;
+    if (!hit.miss && !inUefaRegion(hit)) return undefined; // bad lookup saved by an older version
     return hit;
 }
 
@@ -1152,8 +1158,13 @@ async function geocodeCity(venue) {
     const key = cityKey(venue);
     const hit = cachedGeo(key);
     if (hit !== undefined) return hit.miss ? null : hit;
-    const feats = await photon({ q: `${venue.city}${venue.country ? ', ' + venue.country : ''}`, osm_tag: 'place', limit: '1' });
-    const result = feats.length ? { ...featPoint(feats[0]), precision: 'city' } : null;
+    // Try "city, country" first; ESPN's country can be wrong (Monaco is listed as France), so fall back to the city alone.
+    let found = null;
+    for (const q of [venue.country ? `${venue.city}, ${venue.country}` : null, venue.city].filter(Boolean)) {
+        found = (await photon({ q, osm_tag: 'place', limit: '5' })).map(featPoint).find(inUefaRegion);
+        if (found) break;
+    }
+    const result = found ? { ...found, precision: 'city' } : null;
     geoCache[key] = result || { miss: true, t: Date.now() };
     saveGeo();
     return result;
@@ -1173,7 +1184,7 @@ async function geocodeVenue(venue) {
             try {
                 const qs = new URLSearchParams({ name: venue.name, city: venue.city, country: venue.country });
                 const r = await queuedJson(`${API_BASE}/venue?${qs}`);
-                result = r && !r.miss ? { lat: r.lat, lng: r.lng, precision: r.precision } : null;
+                result = r && !r.miss && inUefaRegion(r) ? { lat: r.lat, lng: r.lng, precision: r.precision } : null;
                 geoCache[key] = result || { miss: true, t: Date.now() };
                 saveGeo();
                 geoInflight.delete(key);
@@ -1189,7 +1200,7 @@ async function geocodeVenue(venue) {
                 const feats = await photon(params);
                 const best = feats
                     .map(f => ({ p: featPoint(f), d: city ? distanceKm(city, featPoint(f)) : 0 }))
-                    .filter(x => !city || x.d < 40)
+                    .filter(x => inUefaRegion(x.p) && (!city || x.d < 40))
                     .sort((a, b) => a.d - b.d)[0];
                 if (best) result = { ...best.p, precision: 'stadium' };
             }

@@ -59,14 +59,18 @@ async function photon(params) {
 }
 
 const point = f => ({ lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] });
+// UEFA's footprint (Azores/Canaries to Kazakhstan). Rejects mix-ups like "Monaco, France"
+// resolving to France's Kerguelen Islands in the Indian Ocean.
+const inUefaRegion = p => p && p.lat > 27 && p.lat < 72 && p.lng > -32 && p.lng < 80;
 const round = n => Math.round(n * 1e5) / 1e5;
 
 // Same strategy as the page: find the city, then the nearest stadium within 40 km of it.
 async function geocodeVenue({ name, city, country }) {
     let cityPt = null;
-    if (city) {
-        const feats = await photon({ q: country ? `${city}, ${country}` : city, osm_tag: 'place', limit: '1' });
-        if (feats.length) cityPt = point(feats[0]);
+    // ESPN's country can be wrong (Monaco is listed as France), so fall back to the city alone.
+    for (const q of [country && city ? `${city}, ${country}` : null, city].filter(Boolean)) {
+        cityPt = (await photon({ q, osm_tag: 'place', limit: '5' })).map(point).find(inUefaRegion) || null;
+        if (cityPt) break;
     }
     if (name) {
         const params = { q: name, osm_tag: 'leisure:stadium', limit: '5' };
@@ -74,7 +78,7 @@ async function geocodeVenue({ name, city, country }) {
         else if (country) params.q = `${name} ${country}`;
         const best = (await photon(params))
             .map(f => ({ p: point(f), d: cityPt ? distanceKm(cityPt, point(f)) : 0 }))
-            .filter(x => !cityPt || x.d < 40)
+            .filter(x => inUefaRegion(x.p) && (!cityPt || x.d < 40))
             .sort((a, b) => a.d - b.d)[0];
         if (best) return { lat: round(best.p.lat), lng: round(best.p.lng), precision: 'stadium' };
     }

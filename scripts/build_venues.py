@@ -115,15 +115,26 @@ def point(feature):
 city_cache = {}
 
 
+def in_uefa_region(p):
+    # UEFA's footprint (Azores/Canaries to Kazakhstan). Rejects mix-ups like "Monaco, France"
+    # resolving to France's Kerguelen Islands in the Indian Ocean.
+    return p is not None and 27 < p[0] < 72 and -32 < p[1] < 80
+
+
 def geocode(venue):
     """Same strategy as the page: city first, then the nearest stadium within 40 km."""
     city = None
     if venue["city"]:
         ck = (venue["city"].lower(), venue["country"].lower())
         if ck not in city_cache:
-            q = venue["city"] + (", " + venue["country"] if venue["country"] else "")
-            feats = photon(q=q, osm_tag="place", limit=1)
-            city_cache[ck] = point(feats[0]) if feats else None
+            # ESPN's country can be wrong (Monaco is listed as France), so fall back to the city alone.
+            found = None
+            queries = [f"{venue['city']}, {venue['country']}" if venue["country"] else None, venue["city"]]
+            for q in filter(None, queries):
+                found = next((pt for pt in map(point, photon(q=q, osm_tag="place", limit=5)) if in_uefa_region(pt)), None)
+                if found:
+                    break
+            city_cache[ck] = found
         city = city_cache[ck]
     if venue["name"]:
         params = {"q": venue["name"], "osm_tag": "leisure:stadium", "limit": 5}
@@ -131,7 +142,7 @@ def geocode(venue):
             params.update(lat=city[0], lon=city[1])
         elif venue["country"]:
             params["q"] = f"{venue['name']} {venue['country']}"
-        candidates = [point(f) for f in photon(**params)]
+        candidates = [pt for pt in map(point, photon(**params)) if in_uefa_region(pt)]
         if city:
             candidates = sorted((c for c in candidates if distance_km(city, c) < 40), key=lambda c: distance_km(city, c))
         if candidates:
@@ -155,6 +166,12 @@ def main():
     body = re.search(r"const KNOWN_VENUES = (\{.*\});", match.group(2), re.S)
     if body and not args.refresh:
         existing = json.loads(body.group(1))
+        # Re-geocode anything a previous run placed outside Europe.
+        bad = [k for k, v in existing.items() if not in_uefa_region(v)]
+        for k in bad:
+            del existing[k]
+        if bad:
+            print(f"Re-checking {len(bad)} venue(s) placed outside Europe: {', '.join(bad)}")
     slugs = re.findall(r"slug: '([^']+)'", html)
     print(f"{len(slugs)} competitions, {len(existing)} venues already known")
 
