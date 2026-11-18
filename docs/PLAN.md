@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) in progress. Decisions are recorded in [`docs/adr/`](adr/) as each step lands.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4). Decisions are recorded in [`docs/adr/`](adr/) as each step lands.
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 
@@ -66,7 +66,7 @@ flowchart LR
 
 - ESPN `scoreboard?dates=` rejects date ranges (HTTP 400) but accepts a single day, a month (`YYYYMM`) or a year (`YYYY&limit=1000`, where 1000 is the maximum). Every event includes the venue name, city and country.
 - 26 competitions × about 10 months ≈ **260 month calls** per full season sweep.
-- Workers Free plan: 50 outbound requests and **10 ms CPU** per run, 5 cron triggers per account. A month response takes about 1–2 ms to parse, so each run handles 2–3 league-months. Year responses (12–15 ms) are out.
+- Workers Free plan: 50 outbound requests and **10 ms CPU** per run, 5 cron triggers per account. A month response takes about 1–2 ms to parse, so each run was planned to handle 2–3 league-months; in production 2 took 47–86 ms of CPU, so each run handles 1. Year responses (12–15 ms) are out.
 - D1 Free plan: 100k row writes a day. Going over stops all queries until 00:00 UTC, so unchanged rows are never written.
 - The Paid plan ($5/month) would allow the whole sweep in one hourly cron. The code should make that switch a config change.
 
@@ -99,7 +99,7 @@ Removed: `/api/venue` (coordinates are already included in each fixture) and, on
 
 ## Ingestion
 
-- Cron fires every minute. Each run takes the next 2–3 league-months from the queue, fetches them, compares with what's stored and writes only what changed.
+- Cron fires every minute. Each run takes the next league-month from the queue, fetches them, compares with what's stored and writes only what changed.
 - Full sweep: 1 Aug of the current season through the last published month. Near-term months are re-queued several times a day, later months less often.
 - Live: every 2 minutes, re-fetch today (one day call per competition) only for competitions with a match in its kick-off window.
 - Venues: new venue names are queued for Photon. Same strategy as today: city first, then the nearest `leisure:stadium` within 40 km, rejecting anything outside the UEFA region. `venue_overrides` takes priority.
