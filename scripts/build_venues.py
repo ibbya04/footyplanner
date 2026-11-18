@@ -26,7 +26,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INDEX = os.path.join(ROOT, "index.html")
+INDEX = os.path.join(ROOT, "apps", "web", "legacy", "index.html")
 ESPN = os.environ.get("ESPN_BASE", "https://site.api.espn.com/apis/site/v2/sports/soccer")
 PHOTON = os.environ.get("PHOTON_URL", "https://photon.komoot.io/api/")
 BLOCK = re.compile(r"(/\* KNOWN_VENUES:START \*/\n)(.*?)(/\* KNOWN_VENUES:END \*/)", re.S)

@@ -1,0 +1,25 @@
+{
+    "name": "footyplanner",
+    "private": true,
+    "type": "module",
+    "packageManager": "pnpm@10.34.9",
+    "engines": {
+        "node": ">=22"
+    },
+    "scripts": {
+        "dev": "pnpm --filter @footyplanner/api dev",
+        "deploy": "pnpm --filter @footyplanner/api deploy",
+        "test": "pnpm -r test",
+        "typecheck": "pnpm -r typecheck",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "eslint": "^10.0.0",
+        "prettier": "^3.10.1",
+        "typescript": "~6.0.3",
+        "typescript-eslint": "^8.73.0"
+    }
+}
