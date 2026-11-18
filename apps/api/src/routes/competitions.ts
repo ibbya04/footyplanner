@@ -1,4 +1,3 @@
-// GET /api/competitions: the leagues the planner covers, with colours, logos and TBC guidance.
 import type { CompetitionsResponse } from '@footyplanner/shared';
 import { asc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';

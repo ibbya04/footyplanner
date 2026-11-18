@@ -8,7 +8,6 @@ import { ENG1_NOVEMBER, fakeUpstream, type FakeUpstream } from './fake-upstream'
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const T = (iso: string) => Date.parse(iso);
-// 12:01 UTC: an odd minute, so a sweep rather than a live refresh.
 const NOW = T('2026-11-18T12:01:00Z');
 
 const all = <T>(sql: string, ...params: unknown[]) =>
@@ -17,7 +16,6 @@ const all = <T>(sql: string, ...params: unknown[]) =>
         .all<T>()
         .then(r => r.results);
 const one = async <T>(sql: string, ...params: unknown[]) => (await all<T>(sql, ...params))[0];
-// Makes only this month due, so the next sweep picks it.
 const dueAgain = (month: string) =>
     env.DB.prepare('UPDATE ingest_queue SET next_run_at = CASE WHEN month = ? THEN 0 ELSE 9e15 END').bind(month).run();
 
@@ -25,7 +23,6 @@ let fake: FakeUpstream;
 
 beforeEach(async () => {
     fake = fakeUpstream();
-    // Only the Premier League, to keep queue order predictable.
     await env.DB.prepare(`UPDATE competitions SET active = 0 WHERE slug != 'eng.1'`).run();
 });
 afterEach(() => {
@@ -49,12 +46,11 @@ describe('sweep', () => {
     it('fills the queue on the first run and fetches the nearest months first', async () => {
         const summary = await runIngest(env, NOW);
         expect(summary).toMatchObject({ mode: 'sweep', espnCalls: 2, fixturesWritten: 4, errors: [] });
-        // November, then October or December (equally near). The order within a run doesn't matter.
         const fetched = fake.calls.filter(c => c.startsWith('espn')).sort();
         expect(fetched).toContain('espn eng.1 202611');
         expect(fetched.filter(c => /^espn eng\.1 2026(10|12)$/.test(c))).toHaveLength(1);
 
-        expect(await one('SELECT count(*) n FROM ingest_queue')).toEqual({ n: 13 }); // 2026-08 … 2027-08
+        expect(await one('SELECT count(*) n FROM ingest_queue')).toEqual({ n: 13 });
         expect(await one(`SELECT last_ok_at, next_run_at, failures FROM ingest_queue WHERE month = '2026-11'`)).toEqual(
             {
                 last_ok_at: NOW,
@@ -75,7 +71,7 @@ describe('sweep', () => {
         await runIngest(env, NOW);
         await dueAgain('2026-11');
         const before = await all('SELECT id, updated_at FROM fixtures ORDER BY id');
-        const summary = await runIngest(env, NOW + 2 * MINUTE + MINUTE); // odd minute again
+        const summary = await runIngest(env, NOW + 2 * MINUTE + MINUTE);
         expect(summary.fixturesWritten).toBe(0);
         expect(await all('SELECT id, updated_at FROM fixtures ORDER BY id')).toEqual(before);
         expect(await one('SELECT count(*) n FROM fixture_changes')).toEqual({ n: 0 });
@@ -116,7 +112,7 @@ describe('sweep', () => {
     });
 
     it('never hands the same queue row to two runs', async () => {
-        await runIngest(env, NOW); // fills the queue
+        await runIngest(env, NOW);
         await env.DB.prepare('UPDATE ingest_queue SET next_run_at = 0').run();
         const db = getDb(env.DB);
         const [a, b] = await Promise.all([claim(db, NOW, 5), claim(db, NOW, 5)]);
@@ -137,7 +133,7 @@ describe('live', () => {
         c.competitors![1]!.score = '1';
         fake.espn.set('eng.1 20261121', live);
 
-        const summary = await runIngest(env, T('2026-11-21T16:08:00Z')); // 68 minutes in, an even minute
+        const summary = await runIngest(env, T('2026-11-21T16:08:00Z'));
         expect(summary.mode).toBe('live');
         expect(fake.calls).toContain('espn eng.1 20261121');
         expect(

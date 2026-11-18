@@ -25,5 +25,8 @@ ESPN gives each venue's name, city and country, but no coordinates. Before, the 
 
 - Every fixture from `/api/fixtures` comes with coordinates once its venue is located. The browser never geocodes.
 - In the first local run against real ESPN, 156 of the 259 seeded venues matched ESPN's names exactly, and about 80 new venues appeared (lower-league FA Cup grounds, Copa del Rey grounds, national stadiums). At one per minute, a backlog like that clears in under 2 hours.
+- In production the first sweep found about 300 new venues, a backlog of a few hours. Photon has brief outages (HTTP 521); failed lookups are retried later. After the first sweep, new venues are a trickle.
 - A fixture can have a venue with no coordinates for a while. The API returns `lat: null` and the page has to cope.
 - Fixing a bad pin is one row in `venue_overrides`, added by migration.
+- Seeded venues only have the lowercase key. The first time ESPN lists one, its spelling of the name, city and country is stored for display.
+- ESPN sometimes gives the wrong country (Monaco is listed as France), so a city search that fails with the country is retried with the city alone. Results outside UEFA's region (the Azores and Canaries to Kazakhstan) are rejected, which catches matches such as "Monaco, France" resolving to France's Kerguelen Islands.

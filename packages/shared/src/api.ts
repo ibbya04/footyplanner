@@ -1,31 +1,29 @@
-// Response shapes of the footyplanner API, shared by the Worker and the frontend.
-
 export interface TeamRef {
     id: string;
     name: string;
     shortName: string | null;
     abbreviation: string | null;
-    crest: string | null; // "/img/teams/359.png", or ESPN's URL until the copy exists
+    crest: string | null;
 }
 
 export interface VenueRef {
     name: string;
     city: string | null;
     country: string | null;
-    lat: number | null; // null while it's still being located
+    lat: number | null;
     lng: number | null;
     precision: 'stadium' | 'city' | null;
 }
 
 export interface Fixture {
-    id: string; // "<comp>:<ESPN event id>", the same id the page uses for its shortlist
+    id: string;
     comp: string;
-    kickoff: string; // ISO, UTC
+    kickoff: string;
     timeConfirmed: boolean;
     status: { state: 'pre' | 'in' | 'post'; name: string; detail: string | null };
     home: TeamRef | null;
     away: TeamRef | null;
-    score: { home: number | null; away: number | null } | null; // null before kick-off
+    score: { home: number | null; away: number | null } | null;
     venue: VenueRef | null;
     neutral: boolean;
     url: string | null;
@@ -74,7 +72,6 @@ export interface StatusResponse {
     pending: { venues: number; crests: number };
 }
 
-// How the page and the database key a venue: "name|city|country", lowercase.
 export function venueKey(name: string, city: string, country: string): string {
     return `${name}|${city}|${country}`.toLowerCase();
 }

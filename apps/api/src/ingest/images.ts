@@ -1,4 +1,3 @@
-// Copies team crests and league logos from ESPN into R2, a few per run, so the page doesn't hotlink ESPN.
 import { and, eq, isNotNull, isNull, lte, or } from 'drizzle-orm';
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import type { Db } from '../db';

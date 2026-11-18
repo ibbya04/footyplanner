@@ -15,13 +15,13 @@ describe('distanceKm', () => {
 
 describe('inUefaRegion', () => {
     it('accepts European cities, including the edges', () => {
-        expect(inUefaRegion({ lat: 43.7384, lng: 7.4246 })).toBe(true); // Monaco
-        expect(inUefaRegion({ lat: 28.1, lng: -15.4 })).toBe(true); // Las Palmas
-        expect(inUefaRegion({ lat: 51.17, lng: 71.45 })).toBe(true); // Astana
+        expect(inUefaRegion({ lat: 43.7384, lng: 7.4246 })).toBe(true);
+        expect(inUefaRegion({ lat: 28.1, lng: -15.4 })).toBe(true);
+        expect(inUefaRegion({ lat: 51.17, lng: 71.45 })).toBe(true);
     });
 
     it("rejects France's Indian Ocean territories and missing points", () => {
-        expect(inUefaRegion({ lat: -49.35, lng: 70.22 })).toBe(false); // Kerguelen
+        expect(inUefaRegion({ lat: -49.35, lng: 70.22 })).toBe(false);
         expect(inUefaRegion(null)).toBe(false);
         expect(inUefaRegion(undefined)).toBe(false);
     });

@@ -1,4 +1,3 @@
-// GET /api/status: how fresh the data is, per competition, and how the last cron run went.
 import type { StatusResponse } from '@footyplanner/shared';
 import { and, count, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';

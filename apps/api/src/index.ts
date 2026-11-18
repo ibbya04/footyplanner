@@ -9,7 +9,6 @@ import { statusRoute } from './routes/status';
 import { venue } from './routes/venue';
 
 const api = new Hono<{ Bindings: Env }>()
-    // Cached responses never reach the Worker, so this only limits cache misses. Counters are per location.
     .use(async (c, next) => {
         const ip = c.req.header('CF-Connecting-IP');
         if (ip && c.env.API_LIMITER) {

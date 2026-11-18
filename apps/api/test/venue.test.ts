@@ -19,7 +19,7 @@ describe('GET /api/venue', () => {
     });
 
     it('falls back to the city when the stadium is too far away', async () => {
-        const farAway = feature(53.4831, -2.2004); // Manchester
+        const farAway = feature(53.4831, -2.2004);
         mockUpstream(url => json({ features: url.searchParams.get('osm_tag') === 'place' ? [LONDON] : [farAway] }));
         const res = await api('/api/venue?name=Emirates%20Stadium&city=London&country=England');
         expect(await res.json()).toEqual({ lat: 51.5074, lng: -0.1278, precision: 'city' });

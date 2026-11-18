@@ -36,3 +36,4 @@ Every error, 400 and 404 is sent with `Cache-Control: no-store`. The lifetimes a
 - The cache key includes the Worker version, so every deploy starts with an empty cache.
 - Vitest doesn't run Workers Cache, so caching can only be checked on a deployed version or preview. The tests check the headers instead.
 - Forgetting `no-store` on a new error path means it gets cached for 2 hours. The 404 and error handlers set it centrally, and the tests check it.
+- The `/api/*` rate limit (120 requests a minute per IP) runs in the Worker, so cached responses never reach it: it only counts cache misses. Its counters are per Cloudflare location, not global.

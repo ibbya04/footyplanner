@@ -1,14 +1,11 @@
-// A stand-in for ESPN, Photon and ESPN's image CDN, so cron runs can be tested end to end.
 import type { EspnScoreboard } from '@footyplanner/shared';
 import { json, mockUpstream } from '../helpers';
 import eng1 from '../fixtures/espn/eng.1-202611.json';
 
-// JSON imports type "home" as plain string, so go through unknown.
 export const ENG1_NOVEMBER = eng1 as unknown as EspnScoreboard;
 export const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 export interface FakeUpstream {
-    // "eng.1 202611" → response. Anything missing is an empty scoreboard.
     espn: Map<string, EspnScoreboard | number>;
     photon: (q: string, tag: string) => { lat: number; lng: number }[];
     calls: string[];

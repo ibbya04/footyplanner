@@ -11,7 +11,7 @@ const NOW = Date.parse('2026-11-18T12:01:00Z');
 beforeEach(async () => {
     fakeUpstream();
     await env.DB.prepare(`UPDATE competitions SET active = 0 WHERE slug != 'eng.1'`).run();
-    await runIngest(env, NOW); // eng.1 November: 2 results on 1–2 Nov, 2 fixtures on 21 Nov
+    await runIngest(env, NOW);
 });
 afterEach(() => {
     vi.restoreAllMocks();
@@ -37,7 +37,6 @@ describe('GET /api/fixtures', () => {
         });
         expect(first!.venue!.lat).toBeCloseTo(53.43, 1);
         expect(third!.score).toBeNull();
-        // Crests copied to R2 point at /img; the rest still point at ESPN.
         const crests = body.fixtures.flatMap(f => [f.home!.crest, f.away!.crest]);
         expect(crests.filter(c => c?.startsWith('/img/teams/'))).toHaveLength(3);
         expect(crests.filter(c => c?.startsWith('https://a.espncdn.com/'))).toHaveLength(5);
@@ -106,7 +105,7 @@ describe('GET /api/competitions', () => {
             featured: true,
             group: { key: 'eng', name: 'England', color: '#a855f7' },
             tbc: { weeks: 5, tv: true },
-            logo: expect.stringContaining('espncdn.com'), // from the November response, not yet copied
+            logo: expect.stringContaining('espncdn.com'),
         });
     });
 });

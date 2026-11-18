@@ -1,5 +1,3 @@
-// Turns raw ESPN scoreboard events into database rows. Pure: no I/O.
-// Mirrors normalizeEvent() in apps/web/legacy/index.html so both agree on ids, venues and status.
 import { venueKey, type EspnCompetitor, type EspnEvent } from '@footyplanner/shared';
 
 export interface TeamInput {

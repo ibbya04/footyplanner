@@ -1,37 +1,33 @@
-// D1 schema. Timestamps are milliseconds since the epoch; kick-offs are ISO strings in UTC
-// ("2026-11-29T16:30:00.000Z") so they sort and compare as text.
-// After changing this file run `pnpm --filter @footyplanner/api db:generate` to write a migration.
 import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const competitions = sqliteTable('competitions', {
-    slug: text('slug').primaryKey(), // ESPN league slug, e.g. "eng.1"
+    slug: text('slug').primaryKey(),
     name: text('name').notNull(),
     short: text('short').notNull(),
-    groupKey: text('group_key').notNull(), // "uefa", "eng", … "other"
+    groupKey: text('group_key').notNull(),
     groupName: text('group_name').notNull(),
     color: text('color').notNull(),
-    featured: integer('featured', { mode: 'boolean' }).notNull().default(false), // in "Big 5 + UEFA"
+    featured: integer('featured', { mode: 'boolean' }).notNull().default(false),
     sortOrder: integer('sort_order').notNull(),
-    tbcWeeks: integer('tbc_weeks').notNull(), // how far ahead kick-off times are usually confirmed
+    tbcWeeks: integer('tbc_weeks').notNull(),
     tbcText: text('tbc_text').notNull(),
-    tbcTv: integer('tbc_tv', { mode: 'boolean' }).notNull(), // can move for TV
-    logoUrl: text('logo_url'), // ESPN's, refreshed by ingestion
-    logoKey: text('logo_key'), // R2 copy
+    tbcTv: integer('tbc_tv', { mode: 'boolean' }).notNull(),
+    logoUrl: text('logo_url'),
+    logoKey: text('logo_key'),
     logoRetryAt: integer('logo_retry_at'),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
 });
 
 export const teams = sqliteTable('teams', {
-    id: text('id').primaryKey(), // ESPN team id
+    id: text('id').primaryKey(),
     name: text('name').notNull(),
     shortName: text('short_name'),
     abbreviation: text('abbreviation'),
-    crestUrl: text('crest_url'), // ESPN's
-    crestKey: text('crest_key'), // R2 copy
+    crestUrl: text('crest_url'),
+    crestKey: text('crest_key'),
     crestRetryAt: integer('crest_retry_at'),
 });
 
-// Keyed like the page's venueKey(): "name|city|country", lowercase.
 export const venues = sqliteTable(
     'venues',
     {
@@ -45,12 +41,11 @@ export const venues = sqliteTable(
         precision: text('precision', { enum: ['stadium', 'city'] }),
         source: text('source', { enum: ['seed', 'photon'] }),
         geocodeAttempts: integer('geocode_attempts').notNull().default(0),
-        nextGeocodeAt: integer('next_geocode_at'), // null once located
+        nextGeocodeAt: integer('next_geocode_at'),
     },
     t => [index('venues_next_geocode_idx').on(t.nextGeocodeAt)],
 );
 
-// Hand-checked locations. Always win over seed data and Photon.
 export const venueOverrides = sqliteTable('venue_overrides', {
     key: text('key').primaryKey(),
     lat: real('lat').notNull(),
@@ -62,13 +57,13 @@ export const venueOverrides = sqliteTable('venue_overrides', {
 export const fixtures = sqliteTable(
     'fixtures',
     {
-        id: text('id').primaryKey(), // ESPN event id
+        id: text('id').primaryKey(),
         comp: text('comp').notNull(),
         kickoff: text('kickoff').notNull(),
         timeValid: integer('time_valid', { mode: 'boolean' }).notNull(),
-        state: text('state').notNull(), // "pre" | "in" | "post"
-        statusName: text('status_name').notNull(), // "STATUS_SCHEDULED", "STATUS_POSTPONED", …
-        statusDetail: text('status_detail'), // "FT", "45'", …
+        state: text('state').notNull(),
+        statusName: text('status_name').notNull(),
+        statusDetail: text('status_detail'),
         homeTeamId: text('home_team_id'),
         awayTeamId: text('away_team_id'),
         homeScore: integer('home_score'),
@@ -76,7 +71,7 @@ export const fixtures = sqliteTable(
         venueKey: text('venue_key'),
         neutralSite: integer('neutral_site', { mode: 'boolean' }).notNull().default(false),
         summaryUrl: text('summary_url'),
-        removedAt: integer('removed_at'), // set when ESPN stops listing it
+        removedAt: integer('removed_at'),
         updatedAt: integer('updated_at').notNull(),
     },
     t => [index('fixtures_comp_kickoff_idx').on(t.comp, t.kickoff), index('fixtures_kickoff_idx').on(t.kickoff)],
@@ -95,12 +90,11 @@ export const fixtureChanges = sqliteTable(
     t => [index('fixture_changes_fixture_idx').on(t.fixtureId)],
 );
 
-// One row per competition and month to fetch. A run claims the rows that are due.
 export const ingestQueue = sqliteTable(
     'ingest_queue',
     {
         comp: text('comp').notNull(),
-        month: text('month').notNull(), // "2026-11"
+        month: text('month').notNull(),
         nextRunAt: integer('next_run_at').notNull(),
         lastRunAt: integer('last_run_at'),
         lastOkAt: integer('last_ok_at'),

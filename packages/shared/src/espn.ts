@@ -1,6 +1,3 @@
-// Types and trimming for ESPN's unofficial soccer scoreboard API.
-// Only the fields the page reads are typed; ESPN sends far more.
-
 export interface EspnLogo {
     href?: string;
     rel?: string[];
@@ -71,7 +68,6 @@ export interface EspnScoreboard {
 
 const hasRel = (l: { rel?: string[] }, rel: string) => (l.rel ?? []).includes(rel);
 
-// Keep only the fields the page uses (mirrors slimEvent in apps/web/legacy/index.html).
 export function slimEvent(ev: EspnEvent): EspnEvent {
     const c = ev.competitions?.[0] ?? {};
     const team = (t: EspnTeam | undefined): EspnTeam | undefined =>
@@ -115,7 +111,6 @@ export function slimEvent(ev: EspnEvent): EspnEvent {
     };
 }
 
-// The league's light-background logo, falling back to whatever ESPN offers.
 export function leagueLogo(leagues: EspnLeague[] | undefined): string | null {
     const league = leagues?.[0];
     if (!league) return null;

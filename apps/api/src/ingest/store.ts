@@ -1,5 +1,3 @@
-// Writes one ESPN response (a league-month or a league-day) to D1.
-// Costs two D1 queries: one read of the fixtures already stored, one batch for every write.
 import { and, eq, gte, isNull, lt, sql } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { Db } from '../db';
@@ -14,7 +12,6 @@ export async function runBatch(db: Db, statements: Statement[]): Promise<void> {
     if (first) await db.batch([first, ...rest]);
 }
 
-// One bound parameter for the whole list, since D1 allows only 100 per query.
 const inJson = (column: typeof fixtures.id, ids: string[]) =>
     sql`${column} IN (SELECT value FROM json_each(${JSON.stringify(ids)}))`;
 
@@ -37,10 +34,8 @@ function teamUpserts(db: Db, parsed: ParsedEvent[]): Statement[] {
                     shortName: sql`excluded.short_name`,
                     abbreviation: sql`excluded.abbreviation`,
                     crestUrl: sql`excluded.crest_url`,
-                    // A new crest URL means the R2 copy is stale.
                     crestKey: sql`CASE WHEN ${teams.crestUrl} IS excluded.crest_url THEN ${teams.crestKey} ELSE NULL END`,
                 },
-                // Unchanged rows aren't rewritten, so they don't count towards D1's write limit.
                 setWhere: sql`${teams.name} IS NOT excluded.name OR ${teams.shortName} IS NOT excluded.short_name
                     OR ${teams.abbreviation} IS NOT excluded.abbreviation OR ${teams.crestUrl} IS NOT excluded.crest_url`,
             }),
@@ -52,10 +47,9 @@ function venueUpserts(db: Db, parsed: ParsedEvent[], now: number): Statement[] {
     return [...unique.values()].map(v =>
         db
             .insert(venues)
-            .values({ ...v, geocodeAttempts: 0, nextGeocodeAt: now }) // new venues queue for geocoding
+            .values({ ...v, geocodeAttempts: 0, nextGeocodeAt: now })
             .onConflictDoUpdate({
                 target: venues.key,
-                // Seed rows only have the lowercase key; take ESPN's spelling the first time it's seen.
                 set: {
                     espnId: sql`excluded.espn_id`,
                     name: sql`excluded.name`,
@@ -73,7 +67,6 @@ export interface ApplyResult {
     changes: number;
 }
 
-// `window` is the span ESPN's response covers. Stored fixtures in it that ESPN no longer lists are marked removed.
 export async function prepareWrites(
     db: Db,
     comp: string,
@@ -115,7 +108,6 @@ export async function prepareWrites(
     }
     for (const c of changes) statements.push(db.insert(fixtureChanges).values({ ...c, at: now }));
 
-    // An empty response is more likely an ESPN hiccup than every match being cancelled, so it removes nothing.
     if (ids.length) {
         statements.push(
             db

@@ -1,4 +1,3 @@
-// The work queue: one row per active competition and month, claimed by cron runs when due.
 import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from '../db';
 import { competitions, ingestQueue } from '../db/schema';
@@ -11,12 +10,8 @@ export interface QueueItem {
     failures: number;
 }
 
-// Adds any missing rows (new months, newly activated competitions). Existing rows are left alone.
-// New rows are due now, nearest month first, so the first sweep fills the weeks people look at soonest.
-// Runs on its own: Drizzle can't put raw SQL in a D1 batch.
 export async function plan(db: Db, months: string[], now: number): Promise<void> {
     const current = monthOf(now);
-    // All due now; nearer months a little "more overdue", so they're claimed first.
     const due = months.map(month => ({
         month,
         at: now - (months.length - Math.abs(monthsBetween(current, month))) * 1000,
@@ -28,7 +23,6 @@ export async function plan(db: Db, months: string[], now: number): Promise<void>
         WHERE c.active = 1`);
 }
 
-// Atomically takes up to `limit` due rows and pushes them a lease ahead, so overlapping runs never share work.
 export async function claim(db: Db, now: number, limit: number): Promise<QueueItem[]> {
     return db.all<QueueItem>(sql`
         UPDATE ${ingestQueue} SET next_run_at = ${now + CLAIM_LEASE}, last_run_at = ${now}

@@ -26,3 +26,4 @@ The page loads team crests and league logos straight from ESPN's CDN (`a.espncdn
 - Images are served from our own origin, with no egress fees (the reason Rate My Uni chose R2 too). A few hundred crests come to about 5 MB, far inside R2's 10 GB free tier.
 - R2 has to be enabled on the Cloudflare account. Its free tier still goes through a checkout step.
 - The first copy of every crest takes a while: at three per minute, about 260 crests take around 90 minutes.
+- A new crest or logo URL from ESPN clears the stored R2 key, and the next run copies it under a new key. That is what makes the 30-day edge cache safe.

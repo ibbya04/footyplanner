@@ -1,5 +1,3 @@
-// GET /api/fixtures?from=YYYY-MM-DD&to=YYYY-MM-DD&comps=eng.1,esp.1,...
-// Every fixture in the range (UTC days, inclusive) with teams and venue coordinates, from one D1 query.
 import { zValidator } from '@hono/zod-validator';
 import type { Fixture, FixturesResponse, TeamRef } from '@footyplanner/shared';
 import { and, asc, eq, gte, inArray, isNull, lt } from 'drizzle-orm';
@@ -31,7 +29,6 @@ const away = alias(teams, 'away');
 
 const crest = (key: string | null, url: string | null) => (key ? `/img/${key}` : url);
 
-// Left joins give null columns when ESPN named no team (e.g. "Winner of match 12").
 function team(
     t: {
         id: string | null;
@@ -61,7 +58,6 @@ const teamColumns = (t: typeof home | typeof away) => ({
     crestUrl: t.crestUrl,
 });
 
-// Ranges touching today carry live scores; past ranges only change when ESPN corrects something.
 function cacheHeaders(from: string, to: string, now: number) {
     const today = new Date(now).toISOString().slice(0, 10);
     const yesterday = new Date(now - DAY).toISOString().slice(0, 10);

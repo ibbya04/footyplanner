@@ -1,6 +1,3 @@
-// GET /api/day?date=YYYY-MM-DD&comps=eng.1,esp.1,...
-// All requested competitions' fixtures for one day in a single, edge-cached response.
-// Temporary: the legacy page still uses it. Removed in step 3, when the React app reads /api/fixtures.
 import { zValidator } from '@hono/zod-validator';
 import { leagueLogo, slimEvent, type EspnEvent, type EspnScoreboard } from '@footyplanner/shared';
 import { Hono } from 'hono';
@@ -46,8 +43,7 @@ export const day = new Hono<{ Bindings: Env }>().get('/', zValidator('query', qu
         return c.json({ error: 'ESPN unavailable', failed }, 502, NO_STORE);
     }
 
-    // Finished days barely change; days around today carry live scores; future days change occasionally.
-    const age = daysBetween(date, todayUtc()); // positive = past
+    const age = daysBetween(date, todayUtc());
     const headers = failed.length
         ? cacheFor(60)
         : age > 1

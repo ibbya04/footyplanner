@@ -1,4 +1,3 @@
-// GET /img/teams/359.png, /img/leagues/eng.1.png: crests and logos copied into R2 by the cron.
 import { Hono } from 'hono';
 import { cacheFor, NO_STORE } from '../cache';
 
@@ -9,7 +8,6 @@ export const imagesRoute = new Hono<{ Bindings: Env }>().get('/*', async c => {
     if (!KEY.test(key)) return c.json({ error: 'not found' }, 404, NO_STORE);
     const object = await c.env.IMAGES.get(key);
     if (!object) return c.json({ error: 'not found' }, 404, NO_STORE);
-    // Crest keys change when ESPN's crest URL does, so a long lifetime is safe.
     return c.body(object.body, 200, {
         ...cacheFor(30 * 86400, 86400),
         'Cache-Control': 'public, max-age=604800',

@@ -21,7 +21,7 @@ describe('GET /api/day', () => {
         expect(Object.keys(body.competitions).sort()).toEqual(['eng.1', 'esp.1']);
         expect(body.competitions['eng.1']!.logo).toBe('logo.png');
         expect(body.competitions['eng.1']!.events[0]).not.toHaveProperty('season');
-        expect(fetch).toHaveBeenCalledTimes(2); // duplicates removed
+        expect(fetch).toHaveBeenCalledTimes(2);
         expect(String(fetch.mock.calls[0]![0])).toContain('/scoreboard?dates=20261122');
     });
 

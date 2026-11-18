@@ -1,9 +1,3 @@
-// One cron run. The Free plan gives each run 10 ms of CPU and 50 subrequests (fetches, D1 queries
-// and R2 calls all count), so a run does a small, bounded amount of work:
-//   even minutes with matches on: refresh today's scores for those competitions ("live")
-//   otherwise: fetch the next few due league-months ("sweep")
-//   then: locate one new venue and copy a few crests
-// Worst case is about 35 subrequests.
 import { leagueLogo, type EspnScoreboard } from '@footyplanner/shared';
 import { and, eq, gte, isNull, lt, lte, ne, sql } from 'drizzle-orm';
 import { getDb, type Db } from '../db';
@@ -32,7 +26,6 @@ function fetchScoreboard(env: Env, comp: string, dates: string): Promise<EspnSco
     return getJson<EspnScoreboard>(`${env.ESPN_BASE}/${comp}/scoreboard?dates=${dates}&limit=1000`);
 }
 
-// Fetches one league-month or league-day and writes it, plus any `extra` statements, in one batch.
 async function ingest(
     db: Db,
     env: Env,
@@ -58,7 +51,6 @@ async function ingest(
     return result.fixturesWritten;
 }
 
-// Competitions with a match that has kicked off in the last 3 hours, or kicks off in the next 10 minutes.
 async function liveTargets(db: Db, now: number): Promise<{ comp: string; day: string }[]> {
     return db
         .selectDistinct({ comp: fixtures.comp, day: sql<string>`substr(${fixtures.kickoff}, 1, 10)` })
@@ -88,7 +80,6 @@ export async function runIngest(env: Env, now = Date.now()): Promise<RunSummary>
     const live = minute % 2 === 0 ? await liveTargets(db, now) : [];
     if (live.length) {
         summary.mode = 'live';
-        // ESPN groups matches by US Eastern date. European kick-offs fall on the same date in UTC and ET.
         for (const { comp, day } of live) {
             summary.espnCalls++;
             try {
@@ -109,7 +100,6 @@ export async function runIngest(env: Env, now = Date.now()): Promise<RunSummary>
         const limit = Number(env.INGEST_MONTHS_PER_RUN);
         let items: QueueItem[] = await claim(db, now, limit);
         if (!items.length && minute !== 0) {
-            // First run after a deploy, or a new competition: fill the queue rather than wait for the hour.
             await plan(db, months, now);
             items = await claim(db, now, limit);
         }

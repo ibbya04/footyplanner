@@ -1,4 +1,3 @@
-// Locates one new venue per run on Photon, well inside its fair-use limit of about one request a second.
 import { and, asc, eq, isNull, lte } from 'drizzle-orm';
 import type { Db } from '../db';
 import { venueOverrides, venues } from '../db/schema';
@@ -17,7 +16,7 @@ export async function geocodeNext(db: Db, photonUrl: string, now: number): Promi
             attempts: venues.geocodeAttempts,
         })
         .from(venues)
-        .leftJoin(venueOverrides, eq(venueOverrides.key, venues.key)) // overrides need no lookup
+        .leftJoin(venueOverrides, eq(venueOverrides.key, venues.key))
         .where(and(isNull(venues.lat), lte(venues.nextGeocodeAt, now), isNull(venueOverrides.key)))
         .orderBy(asc(venues.nextGeocodeAt))
         .limit(1);
@@ -35,8 +34,7 @@ export async function geocodeNext(db: Db, photonUrl: string, now: number): Promi
             .set(
                 loc
                     ? { ...loc, source: 'photon', geocodeAttempts: attempts, nextGeocodeAt: null }
-                    : // Not on OpenStreetMap yet: try again in a week, then two, … up to a month.
-                      { geocodeAttempts: attempts, nextGeocodeAt: now + Math.min(7 * attempts, 30) * DAY },
+                    : { geocodeAttempts: attempts, nextGeocodeAt: now + Math.min(7 * attempts, 30) * DAY },
             )
             .where(eq(venues.key, next.key));
         return null;
