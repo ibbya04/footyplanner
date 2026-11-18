@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:test';
 import { vi } from 'vitest';
-import app from '../src';
+import { app } from '../src';
 
 // Calls the Hono app directly; it runs in the same isolate as the test, so stubbing fetch catches upstream calls.
 export function api(path: string) {

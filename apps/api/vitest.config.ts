@@ -1,7 +1,17 @@
-import { cloudflareTest } from '@cloudflare/vitest-plugin';
+import { cloudflareTest, readD1Migrations } from '@cloudflare/vitest-plugin';
 import { defineConfig } from 'vitest/config';
 
-// Tests run inside workerd with the bindings and vars from wrangler.jsonc.
-export default defineConfig({
-    plugins: [cloudflareTest({ wrangler: { configPath: './wrangler.jsonc' } })],
+// Tests run inside workerd with the bindings and vars from wrangler.jsonc. D1 and R2 are local and
+// start empty for every test file; test/setup.ts applies the migrations (schema and seed data).
+export default defineConfig(async () => {
+    const migrations = await readD1Migrations('./migrations');
+    return {
+        plugins: [
+            cloudflareTest({
+                wrangler: { configPath: './wrangler.jsonc' },
+                miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+            }),
+        ],
+        test: { setupFiles: ['./test/setup.ts'] },
+    };
 });

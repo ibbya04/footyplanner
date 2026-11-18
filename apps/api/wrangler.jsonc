@@ -4,15 +4,30 @@
     "main": "src/index.ts",
     "compatibility_date": "2026-11-01",
     "observability": { "enabled": true },
-    // Static files are served without running the Worker; only /api/* reaches it.
+    // Static files are served without running the Worker; only /api/* and /img/* reach it.
     "assets": {
         "directory": "../web/legacy",
-        "run_worker_first": ["/api/*"],
+        "run_worker_first": ["/api/*", "/img/*"],
     },
     // Workers Cache: Cloudflare serves cached API responses, honouring Cloudflare-CDN-Cache-Control.
     "cache": { "enabled": true },
+    // Ingestion. See src/ingest/run.ts for what one run does.
+    "triggers": { "crons": ["* * * * *"] },
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "footyplanner",
+            "database_id": "19ee62bc-86ff-4751-8955-30572294a9dd",
+            "migrations_dir": "migrations",
+        },
+    ],
+    "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "footyplanner-images" }],
+    "ratelimits": [{ "name": "API_LIMITER", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } }],
     "vars": {
         "ESPN_BASE": "https://site.api.espn.com/apis/site/v2/sports/soccer",
         "PHOTON_URL": "https://photon.komoot.io/api/",
+        "SEASON_START": "2026-08", // first month ingested
+        "HORIZON_MONTHS": "9", // how far ahead of the current month to queue
+        "INGEST_MONTHS_PER_RUN": "2", // league-months fetched per sweep run; keep within 10 ms CPU on Free
     },
 }

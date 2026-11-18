@@ -7,6 +7,7 @@ export interface EspnLogo {
 }
 
 export interface EspnTeam {
+    id?: string;
     displayName?: string;
     name?: string;
     shortDisplayName?: string;
@@ -23,6 +24,7 @@ export interface EspnCompetitor {
 }
 
 export interface EspnVenue {
+    id?: string;
     fullName?: string;
     displayName?: string;
     address?: { city?: string; country?: string };
@@ -52,7 +54,9 @@ export interface EspnEvent {
         neutralSite?: boolean;
         venue?: EspnVenue;
         competitors?: EspnCompetitor[];
+        status?: { type?: EspnStatusType };
     }[];
+    venue?: EspnVenue;
 }
 
 export interface EspnLeague {

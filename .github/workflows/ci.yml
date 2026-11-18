@@ -69,8 +69,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Migrations first, so the new code never runs against an old schema. They must stay
+      # backwards compatible (add, don't rename or drop), since the old version serves until deploy finishes.
       - working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler deploy
+        run: |
+          pnpm exec wrangler d1 migrations apply footyplanner --remote
+          pnpm exec wrangler deploy
