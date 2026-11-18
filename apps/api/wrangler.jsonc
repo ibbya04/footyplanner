@@ -28,6 +28,6 @@
         "PHOTON_URL": "https://photon.komoot.io/api/",
         "SEASON_START": "2026-08", // first month ingested
         "HORIZON_MONTHS": "9", // how far ahead of the current month to queue
-        "INGEST_MONTHS_PER_RUN": "2", // league-months fetched per sweep run; keep within 10 ms CPU on Free
+        "INGEST_MONTHS_PER_RUN": "1", // league-months fetched per sweep run; 2 measured 47–86 ms CPU, over Free's 10 ms
     },
 }

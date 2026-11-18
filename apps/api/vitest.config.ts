@@ -9,7 +9,8 @@ export default defineConfig(async () => {
         plugins: [
             cloudflareTest({
                 wrangler: { configPath: './wrangler.jsonc' },
-                miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+                // Two months per run in tests, so a sweep that claims more than one month stays covered.
+                miniflare: { bindings: { TEST_MIGRATIONS: migrations, INGEST_MONTHS_PER_RUN: '2' } },
             }),
         ],
         test: { setupFiles: ['./test/setup.ts'] },

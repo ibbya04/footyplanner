@@ -27,7 +27,7 @@ It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 dat
 
 A Cron Trigger runs the Worker every minute (`apps/api/src/ingest/run.ts`). The Workers Free plan gives each run 10 ms of CPU and 50 subrequests (fetches, D1 queries and R2 calls all count), so each run does a little:
 
-- **Sweep:** claims the next due league-months from `ingest_queue` (2 per run, `INGEST_MONTHS_PER_RUN`) and fetches each from ESPN with `scoreboard?dates=YYYYMM`, one call per month. Only fixtures that changed are written. Moved kick-offs, confirmed times and postponements are logged in `fixture_changes`. Fixtures ESPN stops listing are marked removed. Near months are re-fetched every few hours, finished months weekly.
+- **Sweep:** claims the next due league-months from `ingest_queue` (1 per run, `INGEST_MONTHS_PER_RUN`) and fetches each from ESPN with `scoreboard?dates=YYYYMM`, one call per month. Only fixtures that changed are written. Moved kick-offs, confirmed times and postponements are logged in `fixture_changes`. Fixtures ESPN stops listing are marked removed. Near months are re-fetched every few hours, finished months weekly.
 - **Live:** on even minutes, competitions with a match in the last 3 hours or the next 10 minutes get today re-fetched instead, so scores are at most about 2 minutes old.
 - **Venues:** one new stadium per run is located on [Photon](https://photon.komoot.io) (OpenStreetMap): the city first, then the nearest stadium within 40 km. `venue_overrides` holds hand-checked locations that always win.
 - **Images:** three crests or league logos per run are copied from ESPN into R2 and served from `/img/...`.

@@ -12,7 +12,7 @@ A full sweep is about 26 competitions × 13 months ≈ 340 ESPN calls. On the Wo
 Stay on the Free plan and split the sweep into small runs, coordinated by an `ingest_queue` table in D1:
 
 - One row per active competition and month, with `next_run_at`, `last_ok_at`, `failures` and `last_error`.
-- Each run **claims** up to `INGEST_MONTHS_PER_RUN` (2) due rows with one `UPDATE … WHERE rowid IN (SELECT … LIMIT n) RETURNING`, pushing them 10 minutes ahead. Overlapping runs can't take the same rows, and a run that dies is retried after the lease.
+- Each run **claims** up to `INGEST_MONTHS_PER_RUN` (1) due rows with one `UPDATE … WHERE rowid IN (SELECT … LIMIT n) RETURNING`, pushing them 10 minutes ahead. Overlapping runs can't take the same rows, and a run that dies is retried after the lease.
 - Success sets the next refresh from how near the month is. Failure backs off: 15 min, 30 min, 1 h … up to 6 h.
 - New rows (new months, a newly activated competition) are added hourly with one `INSERT OR IGNORE … SELECT`, nearest months first, and immediately when the queue is empty, such as after the first deploy.
 - Each league-month costs 3 subrequests: the fetch, one read of the stored fixtures, and one batch with every write including the queue update. A whole run stays around 35 at worst.
@@ -25,7 +25,8 @@ Stay on the Free plan and split the sweep into small runs, coordinated by an `in
 
 ## Consequences
 
-- £0 a month. The first full sweep finishes in roughly 3–5 hours, nearest months first.
+- £0 a month. The first full sweep finishes in roughly 6–10 hours at one month per run, nearest months first.
 - `/api/status` reads straight from the queue: months fetched, last success and failures per competition.
 - CPU can't be measured inside a Worker, because the clock only advances on I/O. If runs start exceeding 10 ms, Workers Logs show it, and the fix is lowering `INGEST_MONTHS_PER_RUN` to 1.
+- Update 2026-11-18: the first production runs at 2 months each used 86 ms and 47 ms of CPU (Workers Logs, outcome `ok`), so it was lowered to 1. A full first sweep now takes about 6–10 hours. If single-month runs still go well over 10 ms, the next options are cheaper writes in the ingest path or Workers Paid.
 - Moving to the Paid plan later is a config change, not a rewrite.
