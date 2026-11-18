@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4). Decisions are recorded in [`docs/adr/`](adr/) as each step lands.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Next: step 3. Decisions are recorded in [`docs/adr/`](adr/) as each step lands.
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 
@@ -30,10 +30,10 @@ Goal: turn footyplanner into a full-stack CV project, with the backend and data 
 | 13  | Map                                              | Leaflet via react-leaflet, keeping clustering and the Esri tiles                                                                                                                        |
 | 14  | Styling                                          | CSS Modules, existing colour variables in a global file                                                                                                                                 |
 | 15  | Frontend state                                   | TanStack Query for API data, filters in the URL, everything else in React state                                                                                                         |
-| 16  | Cloudflare plan                                  | Free. Ingestion split into small cron runs with the work queue in D1                                                                                                                    |
-| 17  | Live scores                                      | Refreshed every 2 minutes, only while a competition has a match in its kick-off window                                                                                                  |
-| 18  | Data window                                      | Current season from 2026-08-01 plus everything published ahead. Nothing deleted                                                                                                         |
-| 19  | Venues                                           | Geocoded by the cron (Photon, at most ~1/s). Manual corrections in `venue_overrides`. `KNOWN_VENUES` becomes seed data                                                                  |
+| 16  | Cloudflare plan                                  | Free for now, under review: runs use 22–34 ms of CPU against a 10 ms limit (see Follow-ups). Ingestion split into small cron runs with the work queue in D1                             |
+| 17  | Live scores                                      | Refreshed every 2 minutes, only while a competition has a match in its kick-off window. Live runs take the even minutes from sweeps                                                     |
+| 18  | Data window                                      | Current season from `SEASON_START` (2026-08, set by hand each summer for now) plus everything published ahead. Nothing deleted                                                          |
+| 19  | Venues                                           | Geocoded once by the cron (Photon, one venue per run). Manual corrections in `venue_overrides`. `KNOWN_VENUES` becomes seed data                                                        |
 | 20  | Fixtures API                                     | One `/api/fixtures` endpoint with venues included, max range 62 days, cached at the edge                                                                                                |
 | 21  | Crests                                           | Copied into R2 by the cron, served from `/img/...`                                                                                                                                      |
 | 22  | Saved trips                                      | Public read-only link plus secret edit token, and a subscribable `.ics` feed                                                                                                            |
@@ -65,8 +65,9 @@ flowchart LR
 ### Constraints that shape ingestion (checked 2026-11-18)
 
 - ESPN `scoreboard?dates=` rejects date ranges (HTTP 400) but accepts a single day, a month (`YYYYMM`) or a year (`YYYY&limit=1000`, where 1000 is the maximum). Every event includes the venue name, city and country.
-- 26 competitions × about 10 months ≈ **260 month calls** per full season sweep.
-- Workers Free plan: 50 outbound requests and **10 ms CPU** per run, 5 cron triggers per account. A month response takes about 1–2 ms to parse, so each run was planned to handle 2–3 league-months; in production 2 took 47–86 ms of CPU, so each run handles 1. Year responses (12–15 ms) are out.
+- 26 competitions × 13 months (2026-08 to 2027-08) = **338 month calls** per full season sweep.
+- ESPN's API is unofficial and undocumented. It can change or refuse requests (one HTTP 403 on 2026-11-18). Failures show on `/api/status` and back off per league-month.
+- Workers Free plan: 50 outbound requests and **10 ms CPU** per run, 5 cron triggers per account. Each run was planned to handle 2–3 league-months, assuming 1–2 ms to parse a month. In production, 2 months took 47–86 ms of CPU, so each run now handles 1. Even then runs take 22–34 ms, including a sweep that wrote nothing, so the cost is fixed per run rather than driven by writes. Runs still finish (outcome `ok`), but the Free plan may cut off a Worker that goes over consistently. Year responses are out.
 - D1 Free plan: 100k row writes a day. Going over stops all queries until 00:00 UTC, so unchanged rows are never written.
 - The Paid plan ($5/month) would allow the whole sweep in one hourly cron. The code should make that switch a config change.
 
@@ -94,15 +95,15 @@ Removed: `/api/venue` (coordinates are already included in each fixture) and, on
 - `fixtures`: ESPN id, competition, kick-off, `time_valid`, status, scores, home, away, venue, `updated_at`
 - `fixture_changes`: kick-off moved, time confirmed, status changes (powers the shortlist's "changed" warnings)
 - `trips`: public id, edit token hash, payload, created and updated times
-- `ingest_queue` / cursor: league-months still to fetch and when each was last fetched
+- `ingest_queue`: league-months still to fetch and when each was last fetched
 - `ingest_runs`: start, end, calls made, rows changed, errors
 
 ## Ingestion
 
-- Cron fires every minute. Each run takes the next league-month from the queue, fetches them, compares with what's stored and writes only what changed.
-- Full sweep: 1 Aug of the current season through the last published month. Near-term months are re-queued several times a day, later months less often.
-- Live: every 2 minutes, re-fetch today (one day call per competition) only for competitions with a match in its kick-off window.
-- Venues: new venue names are queued for Photon. Same strategy as today: city first, then the nearest `leisure:stadium` within 40 km, rejecting anything outside the UEFA region. `venue_overrides` takes priority.
+- Cron fires every minute. Each run does one job: a live refresh or a sweep. A sweep takes the next due league-month from the queue (`INGEST_MONTHS_PER_RUN`, 1 on Free), fetches it, compares with what's stored and writes only what changed.
+- Full sweep: 1 Aug of the current season through the last published month. Near-term months are re-queued several times a day, later months less often. Once the first sweep is done, that's about 500 month calls a day against 1,440 runs.
+- Live: on even minutes, re-fetch today (one day call per competition, at most 6) for competitions with a match that kicked off in the last 3 hours or starts in the next 10 minutes. That run skips the sweep, so on match days sweeps run every other minute and backlogs (the first sweep, catching up after an outage) clear about twice as slowly. Accepted, because the steady-state load is well below capacity.
+- Venues: new venue names are queued for Photon. Same strategy as today: city first, then the nearest `leisure:stadium` within 40 km, rejecting anything outside the UEFA region. `venue_overrides` takes priority. Each venue is located once. The first sweep found about 300 venues the seed didn't have (mostly cup ties at small grounds), a backlog of a few hours. After that, new venues are a trickle (cup draws, European ties, promoted teams). Photon has brief outages (HTTP 521); failed lookups retry later. When no stadium is found, the venue is saved at city level (`precision: city`) for good unless an override is added.
 - Crests: new crest URLs are copied into R2 once.
 - Every run writes an `ingest_runs` row.
 
@@ -116,25 +117,36 @@ Each step is its own branch and pull request, done in a git worktree. The site k
     - Move `slimEvent` and the shared helpers into `packages/shared`.
     - GitHub Actions CI (typecheck, lint, test, preview upload, deploy on `main`).
     - Replace `scripts/dev-server.js` with `wrangler dev`.
-    - Deploy to `workers.dev`, check parity, then switch off Vercel.
+    - Deploy to `workers.dev`, check parity, then switch off Vercel. (Done: Vercel switched off 2026-11-18.)
 2. **Data layer (1b)**
     - D1 schema and migrations with Drizzle. Seed `competitions` and `venues` (from `KNOWN_VENUES`).
     - Cron ingestion with the work queue, change detection, live refresh, venue geocoding and R2 crests.
-    - `/api/fixtures`, `/api/competitions`, `/api/status`, edge caching, rate limit (check the Workers rate-limiting binding is on the Free plan first).
+    - `/api/fixtures`, `/api/competitions`, `/api/status`, edge caching, rate limit (the rate-limiting binding works on the Free plan).
     - Ingestion tests with saved ESPN responses.
     - Delete `scripts/build_venues.py`.
 3. **React rewrite (1c)**
     - `apps/web` with Vite + React + TypeScript, react-leaflet + clustering, CSS Modules, TanStack Query, filters in the URL, Hono RPC client.
     - Rebuild every current feature: date picker, leagues, near-a-place with travel times, shortlist itinerary with clash warnings, route on the map, ICS export, TBC guidance, time zone toggle, resizable sidebar.
     - "Data updated" label from `/api/status`.
+    - Date ranges longer than 62 days (the `/api/fixtures` limit) are split into several requests or capped.
+    - A "location approximate" hint for venues with `precision: city`.
     - Playwright smoke test.
     - Remove `/api/day`, `/api/venue` and the old `index.html`.
 4. **Saved trips**
     - `trips` table, `POST`/`GET`/`PUT /api/trips`, `/t/{id}` page, `/t/{id}.ics` feed (ICS code moved into `packages/shared`).
 5. **Docs**
     - README with the Mermaid diagram, setup and deploy instructions.
-    - ADRs in `docs/adr/`: one Worker over two services, D1 over Postgres, cron-only ingestion, Free-plan batching, anonymous trips with edit tokens.
+    - ADRs in `docs/adr/`: 0001–0011 cover steps 1 and 2 (one Worker, D1, cron-only ingestion, Free-plan batching and more). Still to write: step 3's frontend choices and anonymous trips with edit tokens.
     - Blog post with real numbers: requests per page load before and after, cold-load time, ESPN calls per day, cost.
+
+## Follow-ups
+
+Found after step 2 went live. Not part of a step yet; pick up before or alongside step 3.
+
+- **CPU per cron run (check 2026-11-19).** Once the first sweep and the venue and crest backlogs are done (`/api/status` pending near 0), re-measure with `wrangler tail`. Under ~10 ms: nothing to do. Still ~20 ms or more: either profile and cut the fixed cost per run (JSON parsing, Drizzle, geocoding and crest steps), or move to Workers Paid ($5/month) and update decision 16 and ADR 0009.
+- **Live refresh starves competitions past 6.** `liveTargets` in `apps/api/src/ingest/run.ts` takes at most 6 competitions with no order, so the same 6 are likely picked every time. On a Saturday afternoon more than 6 can be on (English leagues 1–4, Scottish Premiership, Bundesliga, cups), and the rest get no live scores until a sweep. Fix: keep the cap but rotate, e.g. oldest live refresh first. Test it with the fake ESPN upstream.
+- **Season rollover is manual.** `SEASON_START` in `wrangler.jsonc` must be bumped each summer. Consider deriving it (August of this year, or last year before August).
+- **D1 write budget isn't visible.** Add rows written today to `/api/status`, since going over 100k stops every query until 00:00 UTC.
 
 ## Later
 
