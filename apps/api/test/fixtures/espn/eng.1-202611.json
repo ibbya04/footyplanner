@@ -1,0 +1,388 @@
+{
+    "leagues": [
+        {
+            "id": "700",
+            "slug": "eng.1",
+            "logos": [
+                {
+                    "href": "https://a.espncdn.com/i/leaguelogos/soccer/500/23.png",
+                    "width": 500,
+                    "height": 500,
+                    "alt": "",
+                    "rel": ["full", "default"],
+                    "lastUpdated": "2019-05-08T16:07Z"
+                },
+                {
+                    "href": "https://a.espncdn.com/i/leaguelogos/soccer/500-dark/23.png",
+                    "width": 500,
+                    "height": 500,
+                    "alt": "",
+                    "rel": ["full", "dark"],
+                    "lastUpdated": "2021-08-10T20:43Z"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "id": "401879246",
+            "date": "2026-11-01T16:30Z",
+            "name": "Arsenal at Liverpool",
+            "status": {
+                "clock": 5400.0,
+                "displayClock": "90'+7'",
+                "period": 2,
+                "type": {
+                    "id": "28",
+                    "name": "STATUS_FULL_TIME",
+                    "state": "post",
+                    "completed": true,
+                    "description": "Full Time",
+                    "detail": "FT",
+                    "shortDetail": "FT"
+                }
+            },
+            "links": [
+                {
+                    "language": "en-US",
+                    "rel": ["summary", "desktop", "event"],
+                    "href": "https://www.espn.com/soccer/match/_/gameId/401879246/arsenal-liverpool",
+                    "text": "Summary",
+                    "shortText": "Summary",
+                    "isExternal": false,
+                    "isPremium": false,
+                    "isHidden": false
+                }
+            ],
+            "competitions": [
+                {
+                    "id": "401879246",
+                    "date": "2026-11-01T16:30Z",
+                    "timeValid": true,
+                    "neutralSite": null,
+                    "venue": {
+                        "id": "192",
+                        "fullName": "Anfield",
+                        "address": {
+                            "city": "Liverpool",
+                            "country": "England"
+                        }
+                    },
+                    "status": {
+                        "clock": 5400.0,
+                        "displayClock": "90'+7'",
+                        "period": 2,
+                        "type": {
+                            "id": "28",
+                            "name": "STATUS_FULL_TIME",
+                            "state": "post",
+                            "completed": true,
+                            "description": "Full Time",
+                            "detail": "FT",
+                            "shortDetail": "FT"
+                        }
+                    },
+                    "competitors": [
+                        {
+                            "id": "364",
+                            "homeAway": "home",
+                            "score": "0",
+                            "winner": false,
+                            "team": {
+                                "id": "364",
+                                "abbreviation": "LIV",
+                                "displayName": "Liverpool",
+                                "shortDisplayName": "Liverpool",
+                                "name": "Liverpool",
+                                "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png"
+                            }
+                        },
+                        {
+                            "id": "359",
+                            "homeAway": "away",
+                            "score": "1",
+                            "winner": true,
+                            "team": {
+                                "id": "359",
+                                "abbreviation": "ARS",
+                                "displayName": "Arsenal",
+                                "shortDisplayName": "Arsenal",
+                                "name": "Arsenal",
+                                "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "401878762",
+            "date": "2026-11-02T20:00Z",
+            "name": "Everton at Newcastle United",
+            "status": {
+                "clock": 5400.0,
+                "displayClock": "90'+10'",
+                "period": 2,
+                "type": {
+                    "id": "28",
+                    "name": "STATUS_FULL_TIME",
+                    "state": "post",
+                    "completed": true,
+                    "description": "Full Time",
+                    "detail": "FT",
+                    "shortDetail": "FT"
+                }
+            },
+            "links": [
+                {
+                    "language": "en-US",
+                    "rel": ["summary", "desktop", "event"],
+                    "href": "https://www.espn.com/soccer/match/_/gameId/401878762/everton-newcastle-united",
+                    "text": "Summary",
+                    "shortText": "Summary",
+                    "isExternal": false,
+                    "isPremium": false,
+                    "isHidden": false
+                }
+            ],
+            "competitions": [
+                {
+                    "id": "401878762",
+                    "date": "2026-11-02T20:00Z",
+                    "timeValid": true,
+                    "neutralSite": null,
+                    "venue": {
+                        "id": "152",
+                        "fullName": "St. James' Park",
+                        "address": {
+                            "city": "Newcastle-upon-Tyne",
+                            "country": "England"
+                        }
+                    },
+                    "status": {
+                        "clock": 5400.0,
+                        "displayClock": "90'+10'",
+                        "period": 2,
+                        "type": {
+                            "id": "28",
+                            "name": "STATUS_FULL_TIME",
+                            "state": "post",
+                            "completed": true,
+                            "description": "Full Time",
+                            "detail": "FT",
+                            "shortDetail": "FT"
+                        }
+                    },
+                    "competitors": [
+                        {
+                            "id": "361",
+                            "homeAway": "home",
+                            "score": "0",
+                            "winner": false,
+                            "team": {
+                                "id": "361",
+                                "abbreviation": "NEW",
+                                "displayName": "Newcastle United",
+                                "shortDisplayName": "Newcastle",
+                                "name": "Newcastle United",
+                                "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png"
+                            }
+                        },
+                        {
+                            "id": "368",
+                            "homeAway": "away",
+                            "score": "1",
+                            "winner": true,
+                            "team": {
+                                "id": "368",
+                                "abbreviation": "EVE",
+                                "displayName": "Everton",
+                                "shortDisplayName": "Everton",
+                                "name": "Everton",
+                                "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/368.png"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "401879233",
+            "date": "2026-11-21T12:30Z",
+            "name": "Fulham at Manchester City",
+            "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                    "id": "1",
+                    "name": "STATUS_SCHEDULED",
+                    "state": "pre",
+                    "completed": false,
+                    "description": "Scheduled",
+                    "detail": "Sat, November 21st at 7:30 AM EST",
+                    "shortDetail": "Scheduled"
+                }
+            },
+            "links": [
+                {
+                    "language": "en-US",
+                    "rel": ["summary", "desktop", "event"],
+                    "href": "https://www.espn.com/soccer/match/_/gameId/401879233/fulham-manchester-city",
+                    "text": "Summary",
+                    "shortText": "Summary",
+                    "isExternal": false,
+                    "isPremium": false,
+                    "isHidden": false
+                }
+            ],
+            "competitions": [
+                {
+                    "id": "401879233",
+                    "date": "2026-11-21T12:30Z",
+                    "timeValid": true,
+                    "neutralSite": null,
+                    "venue": {
+                        "id": "4036",
+                        "fullName": "Etihad Stadium",
+                        "address": {
+                            "city": "Manchester",
+                            "country": "England"
+                        }
+                    },
+                    "status": {
+                        "clock": 0.0,
+                        "displayClock": "0'",
+                        "type": {
+                            "id": "1",
+                            "name": "STATUS_SCHEDULED",
+                            "state": "pre",
+                            "completed": false,
+                            "description": "Scheduled",
+                            "detail": "Sat, November 21st at 7:30 AM EST",
+                            "shortDetail": "Scheduled"
+                        }
+                    },
+                    "competitors": [
+                        {
+                            "id": "382",
+                            "homeAway": "home",
+                            "score": "0",
+                            "winner": false,
+                            "team": {
+                                "id": "382",
+                                "abbreviation": "MNC",
+                                "displayName": "Manchester City",
+                                "shortDisplayName": "Man City",
+                                "name": "Manchester City",
+                                "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png"
+                            }
+                        },
+                        {
+                            "id": "370",
+                            "homeAway": "away",
+                            "score": "0",
+                            "winner": false,
+                            "team": {
+                                "id": "370",
+                                "abbreviation": "FUL",
+                                "displayName": "Fulham",
+                                "shortDisplayName": "Fulham",
+                                "name": "Fulham",
+                                "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/370.png"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "401879238",
+            "date": "2026-11-21T15:00Z",
+            "name": "Nottingham Forest at AFC Bournemouth",
+            "status": {
+                "clock": 0.0,
+                "displayClock": "0'",
+                "type": {
+                    "id": "1",
+                    "name": "STATUS_SCHEDULED",
+                    "state": "pre",
+                    "completed": false,
+                    "description": "Scheduled",
+                    "detail": "Sat, November 21st at 10:00 AM EST",
+                    "shortDetail": "Scheduled"
+                }
+            },
+            "links": [
+                {
+                    "language": "en-US",
+                    "rel": ["summary", "desktop", "event"],
+                    "href": "https://www.espn.com/soccer/match/_/gameId/401879238/nottingham-forest-afc-bournemouth",
+                    "text": "Summary",
+                    "shortText": "Summary",
+                    "isExternal": false,
+                    "isPremium": false,
+                    "isHidden": false
+                }
+            ],
+            "competitions": [
+                {
+                    "id": "401879238",
+                    "date": "2026-11-21T15:00Z",
+                    "timeValid": true,
+                    "neutralSite": null,
+                    "venue": {
+                        "id": "6020",
+                        "fullName": "Vitality Stadium",
+                        "address": {
+                            "city": "Bournemouth",
+                            "country": "England"
+                        }
+                    },
+                    "status": {
+                        "clock": 0.0,
+                        "displayClock": "0'",
+                        "type": {
+                            "id": "1",
+                            "name": "STATUS_SCHEDULED",
+                            "state": "pre",
+                            "completed": false,
+                            "description": "Scheduled",
+                            "detail": "Sat, November 21st at 10:00 AM EST",
+                            "shortDetail": "Scheduled"
+                        }
+                    },
+                    "competitors": [
+                        {
+                            "id": "349",
+                            "homeAway": "home",
+                            "score": "0",
+                            "winner": false,
+                            "team": {
+                                "id": "349",
+                                "abbreviation": "BOU",
+                                "displayName": "AFC Bournemouth",
+                                "shortDisplayName": "Bournemouth",
+                                "name": "AFC Bournemouth",
+                                "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/349.png"
+                            }
+                        },
+                        {
+                            "id": "393",
+                            "homeAway": "away",
+                            "score": "0",
+                            "winner": false,
+                            "team": {
+                                "id": "393",
+                                "abbreviation": "NFO",
+                                "displayName": "Nottingham Forest",
+                                "shortDisplayName": "Nottm Forest",
+                                "name": "Nottingham Forest",
+                                "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/393.png"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
