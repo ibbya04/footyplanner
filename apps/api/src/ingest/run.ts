@@ -17,8 +17,6 @@ import { prepareWrites, runBatch, type Statement } from './store';
 import { geocodeNext } from './venues';
 
 const MINUTE = 60_000;
-// No order or rotation: with more than 6 competitions on, the same 6 are likely picked every time.
-// Follow-up in docs/PLAN.md.
 const LIVE_MAX = 6;
 const IMAGES_PER_RUN = 3;
 const RUN_HISTORY = 7 * 24 * 60 * MINUTE;
