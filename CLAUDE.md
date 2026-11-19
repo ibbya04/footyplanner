@@ -13,7 +13,7 @@ A map of European football fixtures for planning trips. One Cloudflare Worker se
 
 ## Commands
 
-- `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e`: the same checks CI runs. Run them all before committing.
+- `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e`: the same checks CI runs. Run them all before committing; the pre-commit hook in `.githooks/` (set up by `pnpm install`) checks format and lint on staged files.
 - `pnpm build`: builds the React app and copies the legacy page into `apps/web/dist`, which the Worker serves.
 - `pnpm dev`: `wrangler dev` with local D1 and R2, serving the last build. `pnpm --filter @footyplanner/web dev` runs Vite with hot reload at `http://localhost:5173/next/`, proxying `/api` to it.
 - `pnpm e2e`: Playwright against `wrangler dev` with a separate seeded local database.
