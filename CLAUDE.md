@@ -1,6 +1,6 @@
 # footyplanner
 
-A map of European football fixtures for planning trips. One Cloudflare Worker serves the page, the API (`/api/*`, `/img/*`) and a cron that copies ESPN data into D1. The rebuild plan, its step order and the open follow-ups are in `docs/PLAN.md`; read it before starting work.
+A map of European football fixtures for planning trips. One Cloudflare Worker serves the page, the API (`/api/*`, `/img/*`) and a cron that copies ESPN data into D1. The rebuild plan, its step order and the open follow-ups are in `docs/PLAN.md`; read it before starting work. Use the terms in `GLOSSARY.md`.
 
 ## Layout
 
@@ -38,5 +38,6 @@ Code has to fit these; going over fails or stops the site rather than billing.
 ## Checking production
 
 - `https://footyplanner.footyplanner-api.workers.dev/api/status`: last cron run, months fetched, pending venues and crests.
-- `npx wrangler tail footyplanner` (from `apps/api`): live logs with CPU time per run.
+- `npx wrangler tail footyplanner` (from `apps/api`): live logs with CPU time per run. Live only; it can't show past runs.
+- Past CPU time (e.g. overnight): the GraphQL Analytics API at `https://api.cloudflare.com/client/v4/graphql`, dataset `workersInvocationsAdaptive` filtered on `scriptName: "footyplanner"`, grouped by `datetimeHour`, with `quantiles { cpuTimeP50 cpuTimeP99 }` (microseconds). wrangler's OAuth token works (`oauth_token` in `~/Library/Preferences/.wrangler/config/default.toml`). It mixes HTTP requests with ingest runs; ~60 invocations an hour with few subrequests means ingest runs only. `workersInvocationsScheduled` returns nothing, and the Workers Observability query API returns Forbidden for wrangler's token.
 - `npx wrangler d1 execute footyplanner --remote --command "…"`: query the production database (`ingest_runs`, `ingest_queue`, `fixture_changes`).
