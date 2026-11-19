@@ -75,12 +75,27 @@ function event(fixture: CalendarFixture, now: Date): string[] {
     ];
 }
 
-export function buildIcs(fixtures: CalendarFixture[], now: Date): string {
+export interface CalendarOptions {
+    name?: string;
+    refreshHours?: number;
+}
+
+function calendarHeader({ name, refreshHours }: CalendarOptions): string[] {
+    return [
+        ...(name ? [`X-WR-CALNAME:${escape(name)}`, `NAME:${escape(name)}`] : []),
+        ...(refreshHours
+            ? [`REFRESH-INTERVAL;VALUE=DURATION:PT${refreshHours}H`, `X-PUBLISHED-TTL:PT${refreshHours}H`]
+            : []),
+    ];
+}
+
+export function buildIcs(fixtures: CalendarFixture[], now: Date, options: CalendarOptions = {}): string {
     const lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
         'PRODID:-//footyplanner//EN',
         'CALSCALE:GREGORIAN',
+        ...calendarHeader(options),
         ...fixtures.flatMap(fixture => event(fixture, now)),
         'END:VCALENDAR',
     ];

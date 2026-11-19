@@ -118,5 +118,14 @@ export const ingestRuns = sqliteTable(
     t => [index('ingest_runs_started_idx').on(t.startedAt)],
 );
 
+export const trips = sqliteTable('trips', {
+    id: text('id').primaryKey(),
+    editTokenHash: text('edit_token_hash').notNull(),
+    name: text('name'),
+    fixtureIds: text('fixture_ids', { mode: 'json' }).$type<string[]>().notNull(),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+});
+
 export type FixtureRow = typeof fixtures.$inferSelect;
 export type NewFixture = typeof fixtures.$inferInsert;
