@@ -6,7 +6,7 @@
     "observability": { "enabled": true },
     // Static files are served without running the Worker; only /api/* and /img/* reach it.
     "assets": {
-        "directory": "../web/legacy",
+        "directory": "../web/dist",
         "run_worker_first": ["/api/*", "/img/*"],
     },
     // Workers Cache: Cloudflare serves cached API responses, honouring Cloudflare-CDN-Cache-Control.

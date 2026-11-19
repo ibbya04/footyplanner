@@ -2,12 +2,18 @@
     "name": "@footyplanner/api",
     "private": true,
     "type": "module",
+    "exports": {
+        ".": {
+            "types": "./dist/rpc/index.d.ts"
+        }
+    },
     "scripts": {
         "dev": "wrangler dev",
         "deploy": "wrangler deploy",
         "types": "wrangler types",
         "test": "vitest run",
         "typecheck": "wrangler types --check && tsc -p .",
+        "build:rpc": "tsc -p tsconfig.rpc.json",
         "db:generate": "drizzle-kit generate",
         "db:migrate:local": "wrangler d1 migrations apply footyplanner --local",
         "db:migrate:remote": "wrangler d1 migrations apply footyplanner --remote"

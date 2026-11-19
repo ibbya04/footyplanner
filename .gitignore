@@ -3,3 +3,5 @@ dist/
 .wrangler/
 .dev.vars*
 .claude/worktrees/
+test-results/
+playwright-report/

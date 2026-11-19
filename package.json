@@ -8,7 +8,9 @@
     },
     "scripts": {
         "dev": "pnpm --filter @footyplanner/api dev",
-        "deploy": "pnpm --filter @footyplanner/api deploy",
+        "build": "pnpm --filter @footyplanner/web build",
+        "e2e": "pnpm --filter @footyplanner/web e2e",
+        "deploy": "pnpm build && pnpm --filter @footyplanner/api deploy",
         "test": "pnpm -r test",
         "typecheck": "pnpm -r typecheck",
         "lint": "eslint .",
@@ -18,6 +20,7 @@
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "eslint": "^10.0.0",
+        "eslint-plugin-react-hooks": "^7.1.1",
         "prettier": "^3.10.1",
         "typescript": "~6.0.3",
         "typescript-eslint": "^8.73.0"

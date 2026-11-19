@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Next: step 3. Decisions are recorded in [`docs/adr/`](adr/) as each step lands.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) in progress. Decisions are recorded in [`docs/adr/`](adr/) as each step lands.
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 
@@ -124,19 +124,17 @@ Each step is its own branch and pull request, done in a git worktree. The site k
     - `/api/fixtures`, `/api/competitions`, `/api/status`, edge caching, rate limit (the rate-limiting binding works on the Free plan).
     - Ingestion tests with saved ESPN responses.
     - Delete `scripts/build_venues.py`.
-3. **React rewrite (1c)**
-    - `apps/web` with Vite + React + TypeScript, react-leaflet + clustering, CSS Modules, TanStack Query, filters in the URL, Hono RPC client.
-    - Rebuild every current feature: date picker, leagues, near-a-place with travel times, shortlist itinerary with clash warnings, route on the map, ICS export, TBC guidance, time zone toggle, resizable sidebar.
-    - "Data updated" label from `/api/status`.
-    - Date ranges longer than 62 days (the `/api/fixtures` limit) are split into several requests or capped.
-    - A "location approximate" hint for venues with `precision: city`.
-    - Playwright smoke test.
-    - Remove `/api/day`, `/api/venue` and the old `index.html`.
+3. **React rewrite (1c)**, split into five pull requests. The React app is built at `/next/` while the legacy page stays at `/`, so each one deploys working software ([ADR 0012](adr/0012-react-frontend-built-alongside-the-legacy-page.md)).
+    - **3a. Skeleton:** `apps/web` with Vite, React and TypeScript, served by the Worker at `/next/`. Hono RPC client, TanStack Query, CSS Modules with the legacy colour variables. Map (react-leaflet, clustering, Esri tiles) showing `/api/fixtures` for the next 7 days. Playwright smoke test against `wrangler dev` with seeded fixtures. CI builds the frontend and runs Playwright.
+    - **3b. Browse:** date picker (ranges over 62 days, the `/api/fixtures` limit, split into several requests), leagues picker from `/api/competitions`, filters in the URL, match list, time zone toggle, TBC guidance, "location approximate" hint for venues with `precision: city`, "Data updated" label from `/api/status`, resizable sidebar.
+    - **3c. Near a place:** place search, distance and travel-time estimates (moved into `packages/shared`), sort by distance. Decide whether the browser keeps calling Photon for place search or goes through a cached `/api/places`.
+    - **3d. Shortlist:** shortlist in `localStorage` (reading the legacy keys, so existing shortlists carry over), itinerary with clash warnings and travel between matches, route on the map, ICS export, Google Maps links.
+    - **3e. Cutover:** React moves to `/`. Remove `/api/day`, `/api/venue` and the legacy `index.html`. Playwright covers the main journeys.
 4. **Saved trips**
     - `trips` table, `POST`/`GET`/`PUT /api/trips`, `/t/{id}` page, `/t/{id}.ics` feed (ICS code moved into `packages/shared`).
 5. **Docs**
     - README with the Mermaid diagram, setup and deploy instructions.
-    - ADRs in `docs/adr/`: 0001–0011 cover steps 1 and 2 (one Worker, D1, cron-only ingestion, Free-plan batching and more). Still to write: step 3's frontend choices and anonymous trips with edit tokens.
+    - ADRs in `docs/adr/`: 0001–0011 cover steps 1 and 2 (one Worker, D1, cron-only ingestion, Free-plan batching and more). 0012 covers step 3's frontend. Still to write: anonymous trips with edit tokens.
     - Blog post with real numbers: requests per page load before and after, cold-load time, ESPN calls per day, cost.
 
 ## Follow-ups
