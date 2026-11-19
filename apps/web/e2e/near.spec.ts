@@ -13,7 +13,7 @@ test('searching for a place shows fixtures within 100 km of it, with their dista
         searches.push(new URL(route.request().url()).searchParams.get('q') ?? '');
         return route.fulfill({ path: 'e2e/photon/amsterdam.json' });
     });
-    await page.goto('/next/');
+    await page.goto('/');
 
     await nearButton(page).click();
     await nearDialog(page).getByRole('combobox', { name: 'Find fixtures near a place' }).fill('Amster');
@@ -33,7 +33,7 @@ test('searching for a place shows fixtures within 100 km of it, with their dista
 });
 
 test('sorting by distance and changing the radius', async ({ page }) => {
-    await page.goto('/next/?n=52.63,1.30,400,Norwich');
+    await page.goto('/?n=52.63,1.30,400,Norwich');
     const items = fixtureList(page).getByRole('listitem');
     await expect(items).toHaveCount(2);
     await expect(items.first()).toContainText('Liverpool v Arsenal');
@@ -54,7 +54,7 @@ test('sorting by distance and changing the radius', async ({ page }) => {
 test('"My location" uses where the browser says you are', async ({ page, context }) => {
     await context.grantPermissions(['geolocation']);
     await context.setGeolocation({ latitude: 53.4084, longitude: -2.9916 });
-    await page.goto('/next/');
+    await page.goto('/');
 
     await nearButton(page).click();
     await nearDialog(page).getByRole('button', { name: 'My location' }).click();
@@ -65,19 +65,19 @@ test('"My location" uses where the browser says you are', async ({ page, context
 });
 
 test('clearing the place goes back to anywhere and a clean URL', async ({ page }) => {
-    await page.goto('/next/?n=52.63,1.30,400,Norwich&sort=distance');
+    await page.goto('/?n=52.63,1.30,400,Norwich&sort=distance');
 
     await nearButton(page).click();
     await nearDialog(page).getByRole('button', { name: 'Clear place' }).click();
 
     await expect(nearButton(page)).toContainText('Anywhere');
     await expect(fixtureList(page).getByRole('listitem')).toHaveCount(3);
-    await expect(page).toHaveURL(/\/next\/$/);
+    await expect(page).toHaveURL(/\/$/);
 });
 
 test('says when place search is unavailable', async ({ page }) => {
     await page.route(PHOTON, route => route.fulfill({ status: 503, body: 'down' }));
-    await page.goto('/next/');
+    await page.goto('/');
 
     await nearButton(page).click();
     await nearDialog(page).getByRole('combobox', { name: 'Find fixtures near a place' }).fill('Amster');
@@ -87,7 +87,7 @@ test('says when place search is unavailable', async ({ page }) => {
 
 test('dates: pick a start and an end on the calendar', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-18T10:00:00'));
-    await page.goto('/next/');
+    await page.goto('/');
     const dates = page.getByRole('button', { name: /^Dates/ });
     const calendar = page.getByRole('dialog', { name: 'Choose dates' });
     await expect(dates).toContainText('18–24 Nov');
@@ -113,7 +113,7 @@ test('dates: pick a start and an end on the calendar', async ({ page }) => {
 test('popovers close on Escape and on a click outside, and only one is open at a time', async ({ page }) => {
     const dates = page.getByRole('button', { name: /^Dates/ });
     const calendar = page.getByRole('dialog', { name: 'Choose dates' });
-    await page.goto('/next/');
+    await page.goto('/');
 
     await dates.click();
     await expect(calendar).toBeVisible();

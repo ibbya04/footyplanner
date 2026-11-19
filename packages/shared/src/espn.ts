@@ -68,49 +68,6 @@ export interface EspnScoreboard {
 
 const hasRel = (l: { rel?: string[] }, rel: string) => (l.rel ?? []).includes(rel);
 
-export function slimEvent(ev: EspnEvent): EspnEvent {
-    const c = ev.competitions?.[0] ?? {};
-    const team = (t: EspnTeam | undefined): EspnTeam | undefined =>
-        t && {
-            displayName: t.displayName,
-            name: t.name,
-            shortDisplayName: t.shortDisplayName,
-            abbreviation: t.abbreviation,
-            logo: t.logo || t.logos?.[0]?.href,
-        };
-    const type = ev.status?.type;
-    return {
-        id: ev.id,
-        date: ev.date,
-        timeValid: ev.timeValid,
-        status: type
-            ? { type: { state: type.state, name: type.name, shortDetail: type.shortDetail, detail: type.detail } }
-            : undefined,
-        links: (ev.links ?? [])
-            .filter(l => hasRel(l, 'summary'))
-            .slice(0, 1)
-            .map(l => ({ rel: l.rel, href: l.href })),
-        competitions: [
-            {
-                date: c.date,
-                timeValid: c.timeValid,
-                neutralSite: c.neutralSite,
-                venue: c.venue && {
-                    fullName: c.venue.fullName,
-                    displayName: c.venue.displayName,
-                    address: c.venue.address && { city: c.venue.address.city, country: c.venue.address.country },
-                },
-                competitors: (c.competitors ?? []).map(t => ({
-                    homeAway: t.homeAway,
-                    score: t.score,
-                    winner: t.winner,
-                    team: team(t.team),
-                })),
-            },
-        ],
-    };
-}
-
 export function leagueLogo(leagues: EspnLeague[] | undefined): string | null {
     const league = leagues?.[0];
     if (!league) return null;

@@ -1,7 +1,7 @@
 import { expect, test } from './test';
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/next/');
+    await page.goto('/');
 });
 
 const fixtureList = (page: import('@playwright/test').Page) => page.getByRole('region', { name: 'Fixtures' });
@@ -38,7 +38,7 @@ test('explains why the list is empty', async ({ page }) => {
     await page.getByRole('searchbox', { name: 'Search fixtures' }).fill('zzz');
     await expect(fixtureList(page)).toContainText('Nothing matches “zzz”.');
 
-    await page.goto('/next/?from=2030-01-01&to=2030-01-07');
+    await page.goto('/?from=2030-01-01&to=2030-01-07');
     await expect(fixtureList(page)).toContainText('No fixtures in these dates for the selected competitions.');
 });
 
@@ -129,7 +129,7 @@ test('dragging the sidebar edge resizes it, and the width is kept', async ({ pag
 test.describe('this weekend', () => {
     test('on a Saturday it runs from today to Sunday', async ({ page }) => {
         await page.clock.setFixedTime(new Date('2026-11-21T10:00:00'));
-        await page.goto('/next/');
+        await page.goto('/');
         await page.getByRole('button', { name: /^Dates/ }).click();
         await page.getByRole('button', { name: 'This weekend' }).click();
         await expect(page).toHaveURL(/[?&]from=2026-11-21&to=2026-11-22/);
@@ -137,7 +137,7 @@ test.describe('this weekend', () => {
 
     test('on a Sunday it is just today', async ({ page }) => {
         await page.clock.setFixedTime(new Date('2026-11-22T10:00:00'));
-        await page.goto('/next/');
+        await page.goto('/');
         await page.getByRole('button', { name: /^Dates/ }).click();
         await page.getByRole('button', { name: 'This weekend' }).click();
         await expect(page).toHaveURL(/[?&]from=2026-11-22&to=2026-11-22/);
@@ -146,7 +146,7 @@ test.describe('this weekend', () => {
 
 test('the calendar keeps the range valid: an earlier day restarts it, and it stops at 62 days', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-18T10:00:00'));
-    await page.goto('/next/');
+    await page.goto('/');
     const calendar = page.getByRole('dialog', { name: 'Choose dates' });
 
     await page.getByRole('button', { name: /^Dates/ }).click();
@@ -173,11 +173,11 @@ test('competition shortcuts: Big 5 + UEFA, All, and choosing everything again me
 
     await page.getByRole('button', { name: 'All', exact: true }).click();
     await expect(items).toHaveCount(3);
-    await expect(page).toHaveURL(/\/next\/$/);
+    await expect(page).toHaveURL(/\/$/);
 
     await page.getByRole('button', { name: 'La Liga', exact: true }).click();
     await page.getByRole('button', { name: 'La Liga', exact: true }).click();
-    await expect(page).toHaveURL(/\/next\/$/);
+    await expect(page).toHaveURL(/\/$/);
 });
 
 test('"Data updated" says just now, hours or days as the last run gets older', async ({ page }) => {
@@ -205,7 +205,7 @@ test('"Data updated" says just now, hours or days as the last run gets older', a
                 },
             }),
         );
-        await page.goto('/next/');
+        await page.goto('/');
         await expect(page.getByText(label, { exact: true })).toBeVisible();
         await page.unroute('**/api/status');
     }
@@ -222,7 +222,7 @@ test('cards show the score, and a live tag while a fixture is in play', async ({
         };
         await route.fulfill({ json: { ...body, fixtures: [live, ...rest] } });
     });
-    await page.goto('/next/');
+    await page.goto('/');
 
     const card = fixtureList(page).getByRole('listitem').filter({ hasText: 'Liverpool v Arsenal' });
     await expect(card).toContainText("67'");

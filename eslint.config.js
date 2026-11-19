@@ -10,7 +10,6 @@ export default tseslint.config(
             '**/.wrangler/',
             '**/dist/',
             '**/worker-configuration.d.ts',
-            'apps/web/legacy/',
             'apps/web/test-results/',
             'apps/web/playwright-report/',
         ],

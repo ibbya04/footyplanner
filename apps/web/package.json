@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build && cp -R legacy/. dist/",
+        "build": "vite build",
         "typecheck": "tsc -p ../api/tsconfig.rpc.json && tsc -p .",
         "e2e": "playwright test",
         "test": "vitest run"

@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) merged in [PR #9](https://github.com/ibbya04/footyplanner/pull/9); 3c (near a place) merged in [PR #12](https://github.com/ibbya04/footyplanner/pull/12); 3d (shortlist) in review.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) merged in [PR #9](https://github.com/ibbya04/footyplanner/pull/9); 3c (near a place) merged in [PR #12](https://github.com/ibbya04/footyplanner/pull/12); 3d (shortlist) merged in [PR #13](https://github.com/ibbya04/footyplanner/pull/13); 3e (cutover) in review.
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 
@@ -84,7 +84,7 @@ flowchart LR
 | `GET /t/{id}.ics`                    | Calendar subscriptions                       | Live feed that updates as kick-offs move or get confirmed                                                                                                                                                    |
 | `/img/...`                           | Crests and logos                             | Static files from R2                                                                                                                                                                                         |
 
-Removed: `/api/venue` (coordinates are already included in each fixture) and, once React is live, `/api/day`. The cron handler has no public URL.
+Removed in step 3e: `/api/venue` (coordinates are already included in each fixture) and `/api/day`. The cron handler has no public URL.
 
 ## Database (D1)
 
@@ -129,7 +129,7 @@ Each step is its own branch and pull request; call the `start-work` skill to beg
     - **3b. Browse:** date range with presets (capped at 62 days, the `/api/fixtures` limit, so one request covers it), competitions picker from `/api/competitions`, filters in the URL (a clean URL means no filters), fixture list with day chips, search, "only fixtures in map view", time zone toggle, TBC guidance, "location approximate" hint for venues with `precision: city`, "Data updated" label from `/api/status`, resizable sidebar. All competitions are fetched once per range and filtered in the browser ([ADR 0013](adr/0013-browsing-filters-in-the-url-and-the-browser.md)).
     - **3c. Near a place:** place search, "My location", a radius (25–400 km), distance and travel-time estimates (moved into `packages/shared`, [ADR 0015](adr/0015-rough-travel-time-estimates.md)) and sort by distance, with the place in the URL as the legacy `n=lat,lng,radius,name`. The browser keeps calling Photon for place search; no `/api/places` ([ADR 0014](adr/0014-place-search-calls-photon-from-the-browser.md)). Dates become one button with a range calendar, as in the legacy page, sharing a popover with the place picker.
     - **3d. Shortlist:** shortlist in `localStorage` under its own key as copies of each fixture, refreshed from whatever the page loads (the legacy page's shortlist doesn't carry over), a Shortlist tab with the itinerary, clash warnings and travel between fixtures, route on the map, ICS export (one fixture or all), Google Maps directions links ([ADR 0016](adr/0016-shortlist-kept-in-the-browser.md)).
-    - **3e. Cutover:** React moves to `/`. Remove `/api/day`, `/api/venue` and the legacy `index.html`, and point the pull request preview comment in `ci.yml` at `/` instead of `/next/`. Playwright covers the main journeys.
+    - **3e. Cutover:** React moves to `/`. Remove `/api/day`, `/api/venue` and the legacy `index.html`, and point the pull request preview comment in `ci.yml` at `/` instead of `/next/`. Playwright covers the main journeys. Legacy `#d=…` links aren't translated and `/next/` isn't redirected; legacy features still missing are follow-ups ([ADR 0017](adr/0017-react-app-replaces-the-legacy-page.md)).
 4. **Saved trips**
     - `trips` table, `POST`/`GET`/`PUT /api/trips`, `/t/{id}` page, `/t/{id}.ics` feed (ICS code moved into `packages/shared`).
 5. **Docs**
@@ -139,11 +139,12 @@ Each step is its own branch and pull request; call the `start-work` skill to beg
 
 ## Follow-ups
 
-Found after step 2 went live. Not part of a step yet; pick up before or alongside step 3.
+Found after step 2 went live, and in step 3e. Not part of a step yet.
 
 - **CPU per cron run. Done 2026-11-19: staying on Free.** With the backlogs cleared, production runs still use 13–26 ms when idle and about 44 ms when a month is fetched, and none has been cut off (no `exceededCpu`). Cloudflare allows an isolate to go over "infrequently" without saying by how much. Profiling showed every run pays fresh-isolate start-up, so trimming can't reach 10 ms: skipping no-op team and venue upserts would save about 9 ms per fetched month, and the rest is small. Revisit if runs start ending in `exceededCpu`: move to Workers Paid ($5/month) and update decision 16 and ADR 0009.
 - **Live refresh starves competitions past 6.** `liveTargets` in `apps/api/src/ingest/run.ts` takes at most 6 competitions with no order, so the same 6 are likely picked every time. On a Saturday afternoon more than 6 can be on (English leagues 1–4, Scottish Premiership, Bundesliga, cups), and the rest get no live scores until a sweep. Fix: keep the cap but rotate, e.g. oldest live refresh first. Test it with the fake ESPN upstream.
 - **Season rollover is manual.** `SEASON_START` in `wrangler.jsonc` must be bumped each summer. Consider deriving it (August of this year, or last year before August).
+- **Legacy features the React app doesn't have yet** (from step 3e): the map style picker (dark, light, street), a "Fit matches" button that zooms to every listed fixture, and the competition legend on the map. The legacy shortlist's "Copy share link" is replaced by step 4's saved trips.
 - **D1 write budget isn't visible.** Add rows written today to `/api/status`, since going over 100k stops every query until 00:00 UTC.
 
 ## Later
