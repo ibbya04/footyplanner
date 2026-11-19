@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { cacheFor } from '../cache';
 import { getDb } from '../db';
-import { fixtures, teams, venueOverrides, venues } from '../db/schema';
+import { competitions, fixtures, teams, venueOverrides, venues } from '../db/schema';
 import { badRequest, compList, isoDate } from './validation';
 
 export const MAX_RANGE_DAYS = 62;
@@ -16,7 +16,7 @@ const query = z
     .object({
         from: isoDate('from must be YYYY-MM-DD'),
         to: isoDate('to must be YYYY-MM-DD'),
-        comps: compList,
+        comps: compList.optional(),
     })
     .refine(q => q.to >= q.from, 'to must not be before from')
     .refine(
@@ -69,7 +69,10 @@ function cacheHeaders(from: string, to: string, now: number) {
 
 export const fixturesRoute = new Hono<{ Bindings: Env }>().get('/', zValidator('query', query, badRequest), async c => {
     const { from, to, comps } = c.req.valid('query');
-    const rows = await getDb(c.env.DB)
+    const db = getDb(c.env.DB);
+    const chosen =
+        comps ?? db.select({ slug: competitions.slug }).from(competitions).where(eq(competitions.active, true));
+    const rows = await db
         .select({
             f: fixtures,
             home: teamColumns(home),
@@ -91,7 +94,7 @@ export const fixturesRoute = new Hono<{ Bindings: Env }>().get('/', zValidator('
         .leftJoin(venueOverrides, eq(venueOverrides.key, fixtures.venueKey))
         .where(
             and(
-                inArray(fixtures.comp, comps),
+                inArray(fixtures.comp, chosen),
                 gte(fixtures.kickoff, `${from}T00:00:00.000Z`),
                 lt(fixtures.kickoff, new Date(Date.parse(to) + DAY).toISOString()),
                 isNull(fixtures.removedAt),

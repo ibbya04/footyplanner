@@ -1,19 +1,28 @@
-const DAY = 86_400_000;
-
 export interface DateRange {
     from: string;
     to: string;
 }
 
-const isoDate = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+const DAY = 86_400_000;
 
-export function nextDays(days: number, now = Date.now()): DateRange {
-    return { from: isoDate(now), to: isoDate(now + (days - 1) * DAY) };
+export function localToday(now = new Date()): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-export function kickoffLabel(iso: string, timeConfirmed: boolean): string {
-    const date = new Date(iso);
-    const day = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-    if (!timeConfirmed) return `${day} · time TBC`;
-    return `${day} · ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+export function addDays(day: string, days: number): string {
+    return new Date(Date.parse(`${day}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
 }
+
+export function nextDays(today: string, days: number): DateRange {
+    return { from: today, to: addDays(today, days - 1) };
+}
+
+export function thisWeekend(today: string): DateRange {
+    const weekday = new Date(`${today}T00:00:00Z`).getUTCDay();
+    if (weekday === 0) return { from: today, to: today };
+    const friday = addDays(today, weekday === 6 ? -1 : 5 - weekday);
+    return { from: friday < today ? today : friday, to: addDays(friday, 2) };
+}
+
+export const myZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

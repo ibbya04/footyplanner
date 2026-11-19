@@ -13,11 +13,18 @@ export function useCompetitions() {
     });
 }
 
-export function useFixtures(range: DateRange, comps: string[]) {
+export function useStatus() {
     return useQuery({
-        queryKey: ['fixtures', range.from, range.to, comps],
-        queryFn: () => parseResponse(client.api.fixtures.$get({ query: { ...range, comps: comps.join(',') } })),
-        enabled: comps.length > 0,
+        queryKey: ['status'],
+        queryFn: () => parseResponse(client.api.status.$get()),
+        refetchInterval: MINUTE,
+    });
+}
+
+export function useFixtures(range: DateRange) {
+    return useQuery({
+        queryKey: ['fixtures', range.from, range.to],
+        queryFn: () => parseResponse(client.api.fixtures.$get({ query: range })),
         staleTime: MINUTE,
         refetchInterval: 2 * MINUTE,
     });
