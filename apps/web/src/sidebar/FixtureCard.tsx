@@ -1,12 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { FixtureView } from '../browse/viewFixtures';
-import { teamName } from '../teams';
 import styles from './Sidebar.module.css';
-
-function kickoffText({ kickoffAt }: FixtureView): string {
-    if (!kickoffAt.time) return `${kickoffAt.date} · time TBC`;
-    return `${kickoffAt.date} · ${kickoffAt.time} ${kickoffAt.zone}`;
-}
 
 function scoreText(fixture: FixtureView): string | null {
     if (fixture.status.state === 'pre' || !fixture.score) return null;
@@ -14,7 +8,7 @@ function scoreText(fixture: FixtureView): string | null {
 }
 
 export function FixtureCard({ fixture }: { fixture: FixtureView }) {
-    const { competition, venue } = fixture;
+    const { competition } = fixture;
     const score = scoreText(fixture);
     return (
         <li className={styles.card} style={{ '--c': competition.group.color } as CSSProperties}>
@@ -22,18 +16,18 @@ export function FixtureCard({ fixture }: { fixture: FixtureView }) {
                 <span className={styles.compTag} title={competition.name}>
                     {competition.short}
                 </span>
-                <span className={styles.when}>{kickoffText(fixture)}</span>
+                <span className={styles.when}>{fixture.kickoffText}</span>
                 {fixture.status.state === 'in' && (
                     <span className={styles.live}>{fixture.status.detail ?? 'Live'}</span>
                 )}
             </div>
             <div className={styles.teams}>
-                {teamName(fixture.home)} v {teamName(fixture.away)}
+                {fixture.title}
                 {score && <span className={styles.score}>{score}</span>}
             </div>
-            {venue && (
+            {fixture.venueText && (
                 <div className={styles.venue}>
-                    {[venue.name, venue.city].filter(Boolean).join(', ')}
+                    {fixture.venueText}
                     {fixture.approximate && (
                         <span
                             className={styles.approx}

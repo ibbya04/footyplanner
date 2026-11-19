@@ -8,7 +8,7 @@ export function useFilters(competitions: string[], today: string): [UrlFilters, 
     const context = useMemo(() => ({ competitions, today }), [competitions, today]);
     const filters = useMemo(() => readFilters(new URLSearchParams(query), context), [query, context]);
 
-    const update = useCallback<UpdateFilters>(
+    const updateFilters = useCallback<UpdateFilters>(
         change => {
             const params = writeFilters({ ...filters, ...change }, context).toString();
             const next = params ? `?${params}` : '';
@@ -18,5 +18,5 @@ export function useFilters(competitions: string[], today: string): [UrlFilters, 
         [filters, context],
     );
 
-    return [filters, update];
+    return [filters, updateFilters];
 }

@@ -6,16 +6,17 @@ import { useFilters } from './browse/useFilters';
 import { type Area, viewFixtures } from './browse/viewFixtures';
 import { localToday, myZone } from './dates';
 import { FixtureMap } from './map/FixtureMap';
-import { ResizeHandle, useSidebarWidth } from './sidebar/ResizeHandle';
+import { ResizeHandle } from './sidebar/ResizeHandle';
 import { Sidebar } from './sidebar/Sidebar';
+import { useSidebarWidth } from './sidebar/useSidebarWidth';
 
 function Planner({ competitions }: { competitions: Competition[] }) {
     const today = localToday();
     const slugs = useMemo(() => competitions.map(c => c.slug), [competitions]);
-    const [filters, update] = useFilters(slugs, today);
-    const fixtures = useFixtures(filters.range, slugs);
+    const [filters, updateFilters] = useFilters(slugs, today);
+    const fixtures = useFixtures(filters.range);
     const [area, setArea] = useState<Area | null>(null);
-    const [width, setWidth] = useSidebarWidth();
+    const sidebar = useSidebarWidth();
     const view = useMemo(
         () =>
             viewFixtures(
@@ -26,23 +27,24 @@ function Planner({ competitions }: { competitions: Competition[] }) {
             ),
         [fixtures.data, competitions, filters, area, today],
     );
-    const status = fixtures.error
+    const statusLine = fixtures.error
         ? `Couldn't load fixtures: ${fixtures.error.message}`
         : fixtures.isSuccess
           ? `${view.fixtures.length} fixtures`
           : 'Loading fixtures…';
 
     return (
-        <main className={styles.app} style={{ '--sidebar': `${width}px` } as CSSProperties}>
+        <main className={styles.app} style={{ '--sidebar': `${sidebar.width}px` } as CSSProperties}>
             <Sidebar
                 competitions={competitions}
                 filters={filters}
-                update={update}
+                updateFilters={updateFilters}
                 view={view}
-                status={status}
+                statusLine={statusLine}
                 today={today}
+                loading={fixtures.isPending}
             />
-            <ResizeHandle width={width} onResize={setWidth} />
+            <ResizeHandle {...sidebar} />
             <div className={styles.mapWrap}>
                 <FixtureMap fixtures={view.fixtures} onAreaChange={setArea} />
             </div>

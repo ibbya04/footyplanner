@@ -26,7 +26,7 @@ export function tbcGuidance(
             `Kick-off time not confirmed yet. ${competition.name} times are usually set ${text}, so ${
                 due ? 'it should be announced any day now.' : `expect it around ${around}.`
             }`,
-            tv ? 'The match can also move to another day of that weekend for TV.' : null,
+            tv ? 'The fixture can also move to another day of that weekend for TV.' : null,
             'Avoid non-refundable bookings that depend on the exact time.',
         ]
             .filter(Boolean)

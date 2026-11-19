@@ -78,6 +78,17 @@ describe('viewFixtures', () => {
         expect(view.fixtures[0]?.competition.name).toBe('Premier League');
     });
 
+    it('orders fixtures with the same kick-off by competition', () => {
+        const fixtures = [
+            fixture('esp.1:three', '2026-11-21T15:00:00.000Z', { comp: 'esp.1' }),
+            fixture('eng.1:three', '2026-11-21T15:00:00.000Z'),
+        ];
+
+        const view = viewFixtures(fixtures, [premierLeague, laLiga], noFilters(), context);
+
+        expect(view.fixtures.map(f => f.id)).toEqual(['eng.1:three', 'esp.1:three']);
+    });
+
     it('checks the range against the date at the venue, not in UTC', () => {
         const fixtures = [
             fixture('eng.1:istanbul-friday-utc', '2026-11-20T22:00:00.000Z', { venue: istanbul }),
@@ -116,6 +127,42 @@ describe('viewFixtures', () => {
         const view = viewFixtures([tbc], [premierLeague], noFilters(), context);
 
         expect(view.fixtures[0]?.kickoffAt).toEqual({ date: 'Sun 22 Nov', time: null, zone: null });
+    });
+
+    it('describes each fixture with its teams and venue, using TBD for a team not yet known', () => {
+        const fixtures = [
+            fixture('eng.1:known', '2026-11-21T15:00:00.000Z'),
+            fixture('eng.1:unknown', '2026-11-21T17:00:00.000Z', { away: null, venue: null }),
+        ];
+
+        const view = viewFixtures(fixtures, [premierLeague], noFilters(), context);
+
+        expect(view.fixtures.map(f => [f.title, f.venueText])).toEqual([
+            ['Liverpool v Arsenal', 'Anfield, Liverpool'],
+            ['Liverpool v TBD', null],
+        ]);
+    });
+
+    describe('kick-off text', () => {
+        const text = (f: Fixture, timeZone: 'venue' | 'mine' = 'venue') =>
+            viewFixtures([f], [premierLeague], { ...noFilters(), timeZone }, context).fixtures[0]?.kickoffText;
+
+        it('adds your own time in brackets when venue time differs from it', () => {
+            const evening = fixture('eng.1:istanbul', '2026-11-21T17:00:00.000Z', { venue: istanbul });
+
+            expect(text(evening)).toBe('Sat 21 Nov · 20:00 GMT+3 (17:00 yours)');
+            expect(text(evening, 'mine')).toBe('Sat 21 Nov · 17:00 GMT');
+        });
+
+        it('leaves the brackets out when the venue is in your time zone', () => {
+            expect(text(fixture('eng.1:anfield', '2026-11-21T15:00:00.000Z'))).toBe('Sat 21 Nov · 15:00 GMT');
+        });
+
+        it('says time TBC when the kick-off is not confirmed', () => {
+            const tbc = fixture('eng.1:tbc', '2026-11-22T00:00:00.000Z', { timeConfirmed: false });
+
+            expect(text(tbc)).toBe('Sun 22 Nov · time TBC');
+        });
     });
 
     it('shows only the chosen competitions', () => {
@@ -230,7 +277,7 @@ describe('viewFixtures', () => {
                 short: 'Kick-off time usually confirmed around Sat 21 Nov',
                 long:
                     'Kick-off time not confirmed yet. Premier League times are usually set about 5–6 weeks before, ' +
-                    'so expect it around Sat 21 Nov. The match can also move to another day of that weekend for TV. ' +
+                    'so expect it around Sat 21 Nov. The fixture can also move to another day of that weekend for TV. ' +
                     'Avoid non-refundable bookings that depend on the exact time.',
             });
         });

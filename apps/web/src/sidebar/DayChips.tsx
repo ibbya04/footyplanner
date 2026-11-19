@@ -8,22 +8,24 @@ interface Props {
 }
 
 export function DayChips({ days, selected, onSelect }: Props) {
+    const current = days.some(d => d.day === selected) ? selected : null;
+    if (days.length < 2 && !current) return null;
     return (
         <nav className={styles.days} aria-label="Days">
-            {days.map(({ day, label, count }) => {
-                const on = day === selected;
-                return (
-                    <button
-                        key={day}
-                        type="button"
-                        className={styles.chip}
-                        aria-pressed={on}
-                        onClick={() => onSelect(on ? null : day)}
-                    >
-                        {label} <span className={styles.count}>{count}</span>
-                    </button>
-                );
-            })}
+            <button type="button" className={styles.chip} aria-pressed={!current} onClick={() => onSelect(null)}>
+                All days
+            </button>
+            {days.map(({ day, label, count }) => (
+                <button
+                    key={day}
+                    type="button"
+                    className={styles.chip}
+                    aria-pressed={day === current}
+                    onClick={() => onSelect(day === current ? null : day)}
+                >
+                    {label} <span className={styles.count}>{count}</span>
+                </button>
+            ))}
         </nav>
     );
 }

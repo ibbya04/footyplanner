@@ -6,20 +6,21 @@ import { CompetitionPicker } from './CompetitionPicker';
 import { DataUpdated } from './DataUpdated';
 import { DateRangePicker } from './DateRangePicker';
 import { DayChips } from './DayChips';
-import { FixtureCard } from './FixtureCard';
+import { FixtureList } from './FixtureList';
 import { ListTools } from './ListTools';
 import styles from './Sidebar.module.css';
 
 interface Props {
     competitions: Competition[];
     filters: UrlFilters;
-    update: UpdateFilters;
+    updateFilters: UpdateFilters;
     view: FixturesView;
-    status: string;
+    statusLine: string;
     today: string;
+    loading: boolean;
 }
 
-export function Sidebar({ competitions, filters, update, view, status, today }: Props) {
+export function Sidebar({ competitions, filters, updateFilters, view, statusLine, today, loading }: Props) {
     return (
         <aside className={styles.sidebar}>
             <header className={styles.brand}>
@@ -27,23 +28,23 @@ export function Sidebar({ competitions, filters, update, view, status, today }: 
                     footy<span>planner</span>
                 </h1>
                 <span className={styles.status} role="status">
-                    {status}
+                    {statusLine}
                 </span>
                 <DataUpdated />
             </header>
-            <DateRangePicker range={filters.range} today={today} onChange={range => update({ range, day: null })} />
+            <DateRangePicker
+                range={filters.range}
+                today={today}
+                onChange={range => updateFilters({ range, day: null })}
+            />
             <CompetitionPicker
                 competitions={competitions}
                 chosen={filters.comps}
-                onChange={comps => update({ comps, day: null })}
+                onChange={comps => updateFilters({ comps, day: null })}
             />
-            <ListTools filters={filters} update={update} />
-            <DayChips days={view.days} selected={filters.day} onSelect={day => update({ day })} />
-            <ol className={styles.list} aria-label="Fixtures">
-                {view.fixtures.map(fixture => (
-                    <FixtureCard key={fixture.id} fixture={fixture} />
-                ))}
-            </ol>
+            <ListTools filters={filters} updateFilters={updateFilters} />
+            <DayChips days={view.days} selected={filters.day} onSelect={day => updateFilters({ day })} />
+            <FixtureList fixtures={view.fixtures} filters={filters} loading={loading} />
         </aside>
     );
 }

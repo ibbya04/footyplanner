@@ -94,3 +94,8 @@
     font-size: 12px;
     color: var(--muted);
 }
+
+.tbc {
+    font-size: 12px;
+    color: var(--warn);
+}

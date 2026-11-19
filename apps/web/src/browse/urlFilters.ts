@@ -21,22 +21,26 @@ function isDay(value: string | null): value is string {
     return !isNaN(ms) && new Date(ms).toISOString().startsWith(value);
 }
 
+export function fitRange(from: string, to: string): DateRange {
+    const last = addDays(from, MAX_RANGE_DAYS - 1);
+    return { from, to: to < from ? from : to > last ? last : to };
+}
+
 function readRange(params: URLSearchParams, today: string): DateRange {
     const from = params.get('from');
     const to = params.get('to');
     if (!isDay(from) || !isDay(to) || to < from) return defaultRange(today);
-    const last = addDays(from, MAX_RANGE_DAYS - 1);
-    return { from, to: to > last ? last : to };
+    return fitRange(from, to);
 }
 
 function readComps(params: URLSearchParams, known: string[]): UrlFilters['comps'] {
-    const comps = (params.get('comps') ?? '').split(',').filter(slug => known.includes(slug));
-    return comps.length ? comps.sort() : 'all';
+    const comps = [...new Set((params.get('comps') ?? '').split(','))].filter(slug => known.includes(slug));
+    return comps.length && comps.length < new Set(known).size ? comps.sort() : 'all';
 }
 
-function readDay(params: URLSearchParams, range: DateRange): string | null {
+function readDay(params: URLSearchParams): string | null {
     const day = params.get('day');
-    return isDay(day) && day >= range.from && day <= range.to ? day : null;
+    return isDay(day) ? day : null;
 }
 
 export function readFilters(params: URLSearchParams, context: UrlContext): UrlFilters {
@@ -44,7 +48,7 @@ export function readFilters(params: URLSearchParams, context: UrlContext): UrlFi
     return {
         range,
         comps: readComps(params, context.competitions),
-        day: readDay(params, range),
+        day: readDay(params),
         search: params.get('q') ?? '',
         timeZone: params.get('tz') === 'mine' ? 'mine' : 'venue',
         inView: params.get('in') === 'map',

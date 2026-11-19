@@ -34,6 +34,9 @@ export interface FixtureView extends Fixture {
     competition: Competition;
     day: string;
     kickoffAt: KickoffAt;
+    kickoffText: string;
+    title: string;
+    venueText: string | null;
     tbc: TbcGuidance | null;
     approximate: boolean;
 }
@@ -59,6 +62,20 @@ function countDays(views: FixtureView[]): DayCount[] {
 
 function fixtureDay(fixture: Fixture, zone: string): string {
     return fixture.timeConfirmed ? dayIn(zone, fixture.kickoff) : fixture.kickoff.slice(0, 10);
+}
+
+function kickoffText(fixture: Fixture, at: KickoffAt, zone: string, myZone: string): string {
+    if (!at.time) return `${at.date} · time TBC`;
+    const yours = timeIn(myZone, fixture.kickoff);
+    const hint = zone !== myZone && yours !== at.time ? ` (${yours} yours)` : '';
+    return `${at.date} · ${at.time} ${at.zone}${hint}`;
+}
+
+const teamName = (team: Fixture['home']) => team?.shortName ?? team?.name ?? 'TBD';
+
+function venueText(fixture: Fixture): string | null {
+    const { venue } = fixture;
+    return venue ? [venue.name, venue.city].filter(Boolean).join(', ') : null;
 }
 
 function kickoffAt(fixture: Fixture, zone: string): KickoffAt {
@@ -115,16 +132,20 @@ export function viewFixtures(
         if (!matchesSearch(searchText(fixture, competition), filters.search)) continue;
         if (!insideArea(fixture, filters.area)) continue;
         const shownZone = filters.timeZone === 'mine' ? context.myZone : zoneAtVenue;
+        const at = kickoffAt(fixture, shownZone);
         views.push({
             ...fixture,
             competition,
             day: fixtureDay(fixture, shownZone),
-            kickoffAt: kickoffAt(fixture, shownZone),
+            kickoffAt: at,
+            kickoffText: kickoffText(fixture, at, shownZone, context.myZone),
+            title: `${teamName(fixture.home)} v ${teamName(fixture.away)}`,
+            venueText: venueText(fixture),
             tbc: tbcGuidance(fixture, competition, day, context.today),
             approximate: fixture.venue?.precision === 'city',
         });
     }
-    views.sort((a, b) => a.kickoff.localeCompare(b.kickoff));
+    views.sort((a, b) => a.kickoff.localeCompare(b.kickoff) || a.competition.short.localeCompare(b.competition.short));
     const days = countDays(views);
     const day = days.some(d => d.day === filters.day) ? filters.day : null;
     return { days, fixtures: day ? views.filter(v => v.day === day) : views };

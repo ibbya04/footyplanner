@@ -4,10 +4,10 @@ import styles from './Sidebar.module.css';
 
 interface Props {
     filters: UrlFilters;
-    update: UpdateFilters;
+    updateFilters: UpdateFilters;
 }
 
-export function ListTools({ filters, update }: Props) {
+export function ListTools({ filters, updateFilters }: Props) {
     return (
         <section className={styles.tools}>
             <input
@@ -16,10 +16,14 @@ export function ListTools({ filters, update }: Props) {
                 aria-label="Search fixtures"
                 placeholder="Search teams, venues, competitions"
                 value={filters.search}
-                onChange={e => update({ search: e.target.value, day: null })}
+                onChange={e => updateFilters({ search: e.target.value, day: null })}
             />
             <label className={styles.inView}>
-                <input type="checkbox" checked={filters.inView} onChange={e => update({ inView: e.target.checked })} />
+                <input
+                    type="checkbox"
+                    checked={filters.inView}
+                    onChange={e => updateFilters({ inView: e.target.checked })}
+                />
                 Only fixtures in map view
             </label>
             <fieldset className={styles.zones}>
@@ -29,7 +33,7 @@ export function ListTools({ filters, update }: Props) {
                         type="radio"
                         name="zone"
                         checked={filters.timeZone === 'venue'}
-                        onChange={() => update({ timeZone: 'venue', day: null })}
+                        onChange={() => updateFilters({ timeZone: 'venue', day: null })}
                     />
                     Venue time
                 </label>
@@ -38,7 +42,7 @@ export function ListTools({ filters, update }: Props) {
                         type="radio"
                         name="zone"
                         checked={filters.timeZone === 'mine'}
-                        onChange={() => update({ timeZone: 'mine', day: null })}
+                        onChange={() => updateFilters({ timeZone: 'mine', day: null })}
                     />
                     My time
                 </label>

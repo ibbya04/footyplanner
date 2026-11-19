@@ -60,7 +60,7 @@ It's a pnpm workspace. Install with `pnpm install` (Node 22+; `corepack enable` 
 
 The Worker only runs for `/api/*` and `/img/*`; everything else is served straight from the static assets. Responses are cached at Cloudflare's edge (Workers Cache, via `Cloudflare-CDN-Cache-Control`), and requests that miss the cache are rate-limited per IP (120 a minute).
 
-- **`/api/fixtures?from=YYYY-MM-DD&to=YYYY-MM-DD&comps=eng.1,esp.1,…`** every fixture in the range (whole UTC days, up to 62) from D1, with teams, crests, score, status and venue coordinates. Cached for 60 s when the range touches today, an hour for future ranges and a day for past ones.
+- **`/api/fixtures?from=YYYY-MM-DD&to=YYYY-MM-DD[&comps=eng.1,esp.1,…]`** every fixture in the range (whole UTC days, up to 62) for the listed competitions, or every active one when `comps` is left out, from D1, with teams, crests, score, status and venue coordinates. Cached for 60 s when the range touches today, an hour for future ranges and a day for past ones.
 - **`/api/competitions`** the competitions, their groups and colours, logos and TBC guidance.
 - **`/api/status`** the last cron run and, per competition, how many months have been fetched, when last and whether any are failing.
 - **`/img/teams/<id>.png`, `/img/leagues/<slug>.png`** crests and logos from R2.

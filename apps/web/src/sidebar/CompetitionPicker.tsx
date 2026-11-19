@@ -23,11 +23,11 @@ function groupsOf(competitions: Competition[]) {
 export function CompetitionPicker({ competitions, chosen, onChange }: Props) {
     const [open, setOpen] = useState(false);
     const all = competitions.map(c => c.slug);
-    const on = new Set(chosen === 'all' ? all : chosen);
-    const summary = chosen === 'all' ? 'All' : `${on.size} of ${all.length}`;
+    const chosenSlugs = new Set(chosen === 'all' ? all : chosen);
+    const summary = chosen === 'all' ? 'All' : `${chosenSlugs.size} of ${all.length}`;
 
     const choose = (slugs: string[]) => onChange(slugs.length === all.length || !slugs.length ? 'all' : slugs);
-    const toggle = (slug: string) => choose(all.filter(s => (s === slug ? !on.has(s) : on.has(s))));
+    const toggle = (slug: string) => choose(all.filter(s => (s === slug ? !chosenSlugs.has(s) : chosenSlugs.has(s))));
 
     return (
         <section className={styles.comps}>
@@ -58,7 +58,7 @@ export function CompetitionPicker({ competitions, chosen, onChange }: Props) {
                                         type="button"
                                         className={styles.compChip}
                                         style={{ '--c': group.color } as CSSProperties}
-                                        aria-pressed={on.has(c.slug)}
+                                        aria-pressed={chosenSlugs.has(c.slug)}
                                         onClick={() => toggle(c.slug)}
                                     >
                                         {c.name}

@@ -57,9 +57,21 @@ describe('URL filters', () => {
             expect(read('comps=xyz.9').comps).toBe('all');
         });
 
-        it('drops a day outside the range', () => {
-            expect(read('day=2026-12-25').day).toBeNull();
+        it('treats a list of every competition as all', () => {
+            expect(read('comps=ger.1,eng.1,esp.1').comps).toBe('all');
+        });
+
+        it('ignores a competition listed twice', () => {
+            expect(read('comps=eng.1,eng.1,esp.1').comps).toEqual(['eng.1', 'esp.1']);
+        });
+
+        it('drops a malformed day', () => {
             expect(read('day=soon').day).toBeNull();
+            expect(read('day=2026-02-30').day).toBeNull();
+        });
+
+        it('keeps a real day just after the range, where a late kick-off can land in your own time', () => {
+            expect(read('day=2026-11-26').day).toBe('2026-11-26');
         });
     });
 });

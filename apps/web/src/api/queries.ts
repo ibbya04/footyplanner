@@ -21,11 +21,10 @@ export function useStatus() {
     });
 }
 
-export function useFixtures(range: DateRange, comps: string[]) {
+export function useFixtures(range: DateRange) {
     return useQuery({
-        queryKey: ['fixtures', range.from, range.to, comps],
-        queryFn: () => parseResponse(client.api.fixtures.$get({ query: { ...range, comps: comps.join(',') } })),
-        enabled: comps.length > 0,
+        queryKey: ['fixtures', range.from, range.to],
+        queryFn: () => parseResponse(client.api.fixtures.$get({ query: range })),
         staleTime: MINUTE,
         refetchInterval: 2 * MINUTE,
     });

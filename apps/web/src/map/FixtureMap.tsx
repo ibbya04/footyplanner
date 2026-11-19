@@ -4,7 +4,6 @@ import { MapContainer, Marker, Popup, TileLayer, useMap, ZoomControl } from 'rea
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
 import type { Area, FixtureView } from '../browse/viewFixtures';
-import { teamName } from '../teams';
 import styles from './FixtureMap.module.css';
 import { clusterIcon, pinIcon } from './pins';
 
@@ -14,23 +13,27 @@ const ESRI_ATTRIBUTION =
 const DARK_BASE = `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`;
 const DARK_LABELS = `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`;
 
-function kickoffText({ kickoffAt }: FixtureView): string {
-    return kickoffAt.time ? `${kickoffAt.date} · ${kickoffAt.time} ${kickoffAt.zone}` : `${kickoffAt.date} · time TBC`;
-}
-
 function FixturePopup({ fixture }: { fixture: FixtureView }) {
-    const { competition, venue } = fixture;
+    const { competition } = fixture;
     return (
         <Popup maxWidth={280} minWidth={260}>
             <div className={styles.popHead} style={{ '--c': competition.group.color } as CSSProperties}>
                 {competition.name}
             </div>
             <div className={styles.popBody}>
-                <div className={styles.teams}>
-                    {teamName(fixture.home)} v {teamName(fixture.away)}
-                </div>
-                <div className={styles.meta}>{kickoffText(fixture)}</div>
-                {venue && <div className={styles.meta}>{[venue.name, venue.city].filter(Boolean).join(', ')}</div>}
+                <div className={styles.teams}>{fixture.title}</div>
+                <div className={styles.meta}>{fixture.kickoffText}</div>
+                {fixture.venueText && (
+                    <div className={styles.meta}>
+                        {fixture.venueText}
+                        {fixture.approximate && ' · Location approximate'}
+                    </div>
+                )}
+                {fixture.tbc && (
+                    <div className={styles.tbc} title={fixture.tbc.long}>
+                        {fixture.tbc.short}
+                    </div>
+                )}
             </div>
         </Popup>
     );
@@ -91,12 +94,7 @@ export function FixtureMap({ fixtures, onAreaChange }: Props) {
                     const { lat, lng } = fixture.venue ?? {};
                     if (lat == null || lng == null) return null;
                     return (
-                        <Marker
-                            key={fixture.id}
-                            position={[lat, lng]}
-                            icon={pinIcon(fixture, fixture.competition)}
-                            title={`${teamName(fixture.home)} v ${teamName(fixture.away)}`}
-                        >
+                        <Marker key={fixture.id} position={[lat, lng]} icon={pinIcon(fixture)} title={fixture.title}>
                             <FixturePopup fixture={fixture} />
                         </Marker>
                     );

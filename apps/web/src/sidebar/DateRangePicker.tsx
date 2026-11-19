@@ -1,4 +1,4 @@
-import { MAX_RANGE_DAYS } from '../browse/urlFilters';
+import { fitRange, MAX_RANGE_DAYS } from '../browse/urlFilters';
 import { addDays, type DateRange, nextDays, thisWeekend } from '../dates';
 import styles from './Sidebar.module.css';
 
@@ -17,11 +17,6 @@ function presets(today: string): [string, DateRange][] {
     ];
 }
 
-function fitTo(from: string, to: string): DateRange {
-    const last = addDays(from, MAX_RANGE_DAYS - 1);
-    return { from, to: to < from ? from : to > last ? last : to };
-}
-
 export function DateRangePicker({ range, today, onChange }: Props) {
     return (
         <section className={styles.dates}>
@@ -31,7 +26,7 @@ export function DateRangePicker({ range, today, onChange }: Props) {
                     <input
                         type="date"
                         value={range.from}
-                        onChange={e => e.target.value && onChange(fitTo(e.target.value, range.to))}
+                        onChange={e => e.target.value && onChange(fitRange(e.target.value, range.to))}
                     />
                 </label>
                 <label>
@@ -41,7 +36,7 @@ export function DateRangePicker({ range, today, onChange }: Props) {
                         value={range.to}
                         min={range.from}
                         max={addDays(range.from, MAX_RANGE_DAYS - 1)}
-                        onChange={e => e.target.value && onChange(fitTo(range.from, e.target.value))}
+                        onChange={e => e.target.value && onChange(fitRange(range.from, e.target.value))}
                     />
                 </label>
             </div>

@@ -89,6 +89,20 @@ describe('GET /api/fixtures', () => {
         expect(res.headers.get('Cache-Control')).toBe('no-store');
     });
 
+    it('returns every active competition when comps is left out', async () => {
+        await env.DB.prepare(
+            `INSERT INTO fixtures (id, comp, kickoff, time_valid, state, status_name, updated_at)
+             VALUES ('esp.1:inactive', 'esp.1', '2026-11-21T20:00:00.000Z', 1, 'pre', 'STATUS_SCHEDULED', 0)`,
+        ).run();
+
+        const res = await api('/api/fixtures?from=2026-11-01&to=2026-11-30');
+
+        expect(res.status).toBe(200);
+        const { fixtures } = await res.json<FixturesResponse>();
+        expect(fixtures).toHaveLength(4);
+        expect(new Set(fixtures.map(f => f.comp))).toEqual(new Set(['eng.1']));
+    });
+
     it('accepts the longest allowed range', async () => {
         expect((await api('/api/fixtures?from=2026-11-01&to=2027-01-01&comps=eng.1')).status).toBe(200);
     });
