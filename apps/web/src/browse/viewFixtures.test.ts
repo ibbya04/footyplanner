@@ -1,6 +1,6 @@
 import type { Competition, Fixture } from '@footyplanner/shared';
 import { describe, expect, it } from 'vitest';
-import { type Filters, viewFixtures } from './viewFixtures';
+import { type Filters, viewFixtures, viewShortlist } from './viewFixtures';
 
 const premierLeague: Competition = {
     slug: 'eng.1',
@@ -374,5 +374,44 @@ describe('viewFixtures', () => {
             expect(guidance(tbcOn('2026-12-26', { status: postponed }))).toBeNull();
             expect(guidance(tbcOn('2026-12-26', { status: started }))).toBeNull();
         });
+    });
+});
+
+describe('viewShortlist', () => {
+    it('shows saved fixtures in kick-off order whatever the dates, competitions, day and search', () => {
+        const saved = [
+            fixture('esp.1:later', '2027-01-10T20:00:00.000Z', { comp: 'esp.1' }),
+            fixture('eng.1:sooner', '2026-11-21T15:00:00.000Z'),
+        ];
+        const filters = { ...noFilters(), comps: ['eng.1'], day: '2026-11-22', search: 'zzz' };
+
+        const view = viewShortlist(saved, [premierLeague, laLiga], filters, context);
+
+        expect(view.map(f => f.id)).toEqual(['eng.1:sooner', 'esp.1:later']);
+        expect(view[1]?.competition.name).toBe('LaLiga');
+    });
+
+    it('uses the chosen time zone and gives the distance from the place, without leaving any out', () => {
+        const near = { name: 'Manchester', lat: 53.4808, lng: -2.2426, radius: 25 };
+        const saved = [fixture('eng.1:a', '2026-11-21T15:00:00.000Z')];
+
+        const [view] = viewShortlist(
+            saved,
+            [premierLeague],
+            { ...noFilters(), near, timeZone: 'mine' },
+            {
+                ...context,
+                myZone: 'Europe/Madrid',
+            },
+        );
+
+        expect(view?.kickoffText).toBe('Sat 21 Nov · 16:00 CET');
+        expect(view?.distanceText).toBe('48 km · ≈55 min');
+    });
+
+    it('leaves out saved fixtures from competitions footyplanner no longer shows', () => {
+        const saved = [fixture('ita.1:a', '2026-11-21T15:00:00.000Z', { comp: 'ita.1' })];
+
+        expect(viewShortlist(saved, [premierLeague], noFilters(), context)).toEqual([]);
     });
 });

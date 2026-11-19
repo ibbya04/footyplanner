@@ -19,12 +19,13 @@ function crest(competition: Competition): HTMLElement {
     return el;
 }
 
-export function pinIcon(fixture: FixtureView): L.DivIcon {
+export function pinIcon(fixture: FixtureView, saved: boolean): L.DivIcon {
     const { competition } = fixture;
     const el = crest(competition);
     el.classList.add(styles.pin ?? '');
     if (fixture.status.state === 'in') el.classList.add(styles.live ?? '');
     if (fixture.approximate) el.classList.add(styles.approx ?? '');
+    if (saved) el.classList.add(styles.saved ?? '');
     el.style.setProperty('--c', competition.group.color);
     el.title = competition.name;
     return L.divIcon({ className: 'pin-icon', html: el, iconSize: [0, 0] });

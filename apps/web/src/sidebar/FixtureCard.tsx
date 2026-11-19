@@ -1,13 +1,21 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { FixtureView } from '../browse/viewFixtures';
 import styles from './Sidebar.module.css';
+import { StarButton } from './StarButton';
 
 function scoreText(fixture: FixtureView): string | null {
     if (fixture.status.state === 'pre' || !fixture.score) return null;
     return `${fixture.score.home ?? '–'}–${fixture.score.away ?? '–'}`;
 }
 
-export function FixtureCard({ fixture }: { fixture: FixtureView }) {
+interface Props {
+    fixture: FixtureView;
+    saved: boolean;
+    onToggle: (id: string) => void;
+    children?: ReactNode;
+}
+
+export function FixtureCard({ fixture, saved, onToggle, children }: Props) {
     const { competition } = fixture;
     const score = scoreText(fixture);
     return (
@@ -20,6 +28,7 @@ export function FixtureCard({ fixture }: { fixture: FixtureView }) {
                 {fixture.status.state === 'in' && (
                     <span className={styles.live}>{fixture.status.detail ?? 'Live'}</span>
                 )}
+                <StarButton title={fixture.title} saved={saved} onToggle={() => onToggle(fixture.id)} />
             </div>
             <div className={styles.teams}>
                 {fixture.title}
@@ -49,6 +58,7 @@ export function FixtureCard({ fixture }: { fixture: FixtureView }) {
                     {fixture.tbc.short}
                 </div>
             )}
+            {children}
         </li>
     );
 }

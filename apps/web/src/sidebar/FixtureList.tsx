@@ -8,6 +8,8 @@ interface Props {
     fixtures: FixtureView[];
     filters: UrlFilters;
     loading: boolean;
+    savedIds: Set<string>;
+    onToggle: (id: string) => void;
 }
 
 function emptyMessage(filters: UrlFilters): string {
@@ -30,7 +32,7 @@ function byDay(fixtures: FixtureView[]): [string, FixtureView[]][] {
     return [...groups].map(([day, group]) => [dateLabel(day), group]);
 }
 
-export function FixtureList({ fixtures, filters, loading }: Props) {
+export function FixtureList({ fixtures, filters, loading, savedIds, onToggle }: Props) {
     return (
         <section className={styles.list} aria-label="Fixtures">
             {!fixtures.length && !loading && <p className={styles.empty}>{emptyMessage(filters)}</p>}
@@ -42,7 +44,12 @@ export function FixtureList({ fixtures, filters, loading }: Props) {
                     </h3>
                     <ol className={styles.cards}>
                         {group.map(fixture => (
-                            <FixtureCard key={fixture.id} fixture={fixture} />
+                            <FixtureCard
+                                key={fixture.id}
+                                fixture={fixture}
+                                saved={savedIds.has(fixture.id)}
+                                onToggle={onToggle}
+                            />
                         ))}
                     </ol>
                 </div>
