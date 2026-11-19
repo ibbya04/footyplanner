@@ -26,6 +26,7 @@ A map of European football fixtures for planning trips. One Cloudflare Worker se
 - No comments in code; lint enforces it (`packages/eslint-plugin`). Code reads clearly through naming and small functions, and any design decision that needs explaining gets an ADR in `docs/adr/` (template in `docs/adr/README.md`, added to its index).
 - Before any change, call the `start-work` skill.
 - A pull request is complete before it's opened: its ADRs, the status line and step entry in `docs/PLAN.md`, and the checks under Commands all green. Then fetch and rebase on `origin/main`, rerunning the checks if anything came in. Push to an open pull request only for review changes.
+- Wait for CI with `gh pr checks <number> --watch`; right after `gh pr create` it can report no checks yet, so run it again. After a `[JFDI]` push to `main`, report the push and stop.
 - Merging to `main` deploys: CI applies D1 migrations to production, then runs `wrangler deploy`. Migrations must be safe to apply before the new code is live.
 - Visitor requests never call ESPN or Photon. Only the cron fetches upstream data.
 - Test-driven development for code changes: follow "Tests come first" in `CODING_STANDARDS.md`, which review checks, including recording each red run for the PR description.
