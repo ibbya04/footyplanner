@@ -2,7 +2,7 @@
 
 A single-page map of the football matches on across Europe for a set of dates. You can use it to see which games you could get to while travelling.
 
-It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 database every minute, locates stadiums on OpenStreetMap and copies crests into R2; the API serves from D1 and is cached at Cloudflare's edge. No API keys. The rebuild is under way one step at a time: see [docs/PLAN.md](docs/PLAN.md) and the decision records in [docs/adr/](docs/adr/).
+It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 database every minute, locates stadiums on OpenStreetMap and copies crests into R2; the API serves from D1 and is cached at Cloudflare's edge. No API keys. A React version of the page is being built at `/next/`. The rebuild is under way one step at a time: see [docs/PLAN.md](docs/PLAN.md) and the decision records in [docs/adr/](docs/adr/).
 
 ## How it works
 
@@ -47,7 +47,10 @@ apps/api/            Cloudflare Worker (Hono): API routes, cron ingestion, wrang
   src/routes/        /api/* and /img/*
   migrations/        D1 migrations (schema from drizzle-kit, plus seed data)
   test/              Vitest, run inside the Workers runtime with local D1 and R2
-apps/web/legacy/     the current single-page app, served as static assets
+apps/web/            the React app (Vite), served at /next/ until it replaces the legacy page
+  src/               components, API client (Hono RPC) and queries (TanStack Query)
+  e2e/               Playwright tests and their seed data
+  legacy/            the current single-page app, copied into the build and served at /
 packages/shared/     code used by both: API response types, ESPN types, distance and region checks
 ```
 
@@ -72,7 +75,10 @@ Errors and bad requests are sent with `Cache-Control: no-store` so they're never
 ## Development
 
 ```
-pnpm dev            # wrangler dev on http://localhost:8787 (page + API)
+pnpm build          # build the React app and copy the legacy page into apps/web/dist
+pnpm dev            # wrangler dev on http://localhost:8787 (built pages + API); run pnpm build first
+pnpm --filter @footyplanner/web dev   # Vite with hot reload on http://localhost:5173/next/, proxying /api to :8787
+pnpm e2e            # Playwright against wrangler dev with a seeded local database
 pnpm test           # Vitest; the API tests run inside the Workers runtime
 pnpm typecheck
 pnpm lint
@@ -93,7 +99,7 @@ After changing `src/db/schema.ts`, run `pnpm db:generate` to write a migration, 
 
 ## Deploying (Cloudflare)
 
-GitHub Actions (`.github/workflows/ci.yml`) checks formatting, lint, types and tests on every pull request and push. Pull requests also upload a preview version (`pr-<number>-footyplanner.<account>.workers.dev`) and comment the link. Pushes to `main` apply D1 migrations, then deploy with `wrangler deploy`. Migrations have to stay backwards compatible (add columns and tables, don't rename or drop), because the previous version keeps serving until the deploy finishes, and preview versions share the production database.
+GitHub Actions (`.github/workflows/ci.yml`) checks formatting, lint, types, tests and the frontend build on every pull request and push, and runs the Playwright tests in a separate job. Pull requests also upload a preview version (`pr-<number>-footyplanner.<account>.workers.dev`) and comment the link. Pushes to `main` apply D1 migrations, then deploy with `wrangler deploy`. Migrations have to stay backwards compatible (add columns and tables, don't rename or drop), because the previous version keeps serving until the deploy finishes, and preview versions share the production database.
 
 The deploy jobs need two repository secrets:
 
