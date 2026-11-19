@@ -35,3 +35,11 @@ export function clusterIcon(cluster: L.MarkerCluster): L.DivIcon {
     count.textContent = String(cluster.getChildCount());
     return L.divIcon({ className: styles.cluster ?? '', html: count, iconSize: [40, 40] });
 }
+
+export function homeIcon(): L.DivIcon {
+    const el = document.createElement('div');
+    el.className = styles.home ?? '';
+    el.textContent = '⌂';
+    el.title = 'Your place';
+    return L.divIcon({ className: 'pin-icon', html: el, iconSize: [0, 0] });
+}

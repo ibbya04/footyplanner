@@ -67,21 +67,6 @@ test('turning a competition off hides its fixtures, and the choice survives a re
     await expect(items).toHaveCount(2);
 });
 
-test('date presets and the date fields set the range, and the default range keeps a clean URL', async ({ page }) => {
-    await page.clock.setFixedTime(new Date('2026-11-18T10:00:00'));
-    await page.goto('/next/');
-
-    await page.getByRole('button', { name: 'This weekend' }).click();
-    await expect(page).toHaveURL(/[?&]from=2026-11-20&to=2026-11-22/);
-
-    await page.getByLabel('From').fill('2026-12-01');
-    await page.getByLabel('To').fill('2026-12-14');
-    await expect(page).toHaveURL(/[?&]from=2026-12-01&to=2026-12-14/);
-
-    await page.getByRole('button', { name: '7 days' }).click();
-    await expect(page).toHaveURL(/\/next\/$/);
-});
-
 test('cards explain TBC kick-offs and flag venues only located to their city', async ({ page }) => {
     const items = fixtureList(page).getByRole('listitem');
     const tbc = items.filter({ hasText: 'Real Madrid v Barcelona' });
@@ -145,6 +130,7 @@ test.describe('this weekend', () => {
     test('on a Saturday it runs from today to Sunday', async ({ page }) => {
         await page.clock.setFixedTime(new Date('2026-11-21T10:00:00'));
         await page.goto('/next/');
+        await page.getByRole('button', { name: /^Dates/ }).click();
         await page.getByRole('button', { name: 'This weekend' }).click();
         await expect(page).toHaveURL(/[?&]from=2026-11-21&to=2026-11-22/);
     });
@@ -152,20 +138,29 @@ test.describe('this weekend', () => {
     test('on a Sunday it is just today', async ({ page }) => {
         await page.clock.setFixedTime(new Date('2026-11-22T10:00:00'));
         await page.goto('/next/');
+        await page.getByRole('button', { name: /^Dates/ }).click();
         await page.getByRole('button', { name: 'This weekend' }).click();
         await expect(page).toHaveURL(/[?&]from=2026-11-22&to=2026-11-22/);
     });
 });
 
-test('the date fields keep the range valid: To follows From, and stops at 62 days', async ({ page }) => {
+test('the calendar keeps the range valid: an earlier day restarts it, and it stops at 62 days', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-18T10:00:00'));
     await page.goto('/next/');
+    const calendar = page.getByRole('dialog', { name: 'Choose dates' });
 
-    await page.getByLabel('From').fill('2026-12-20');
-    await expect(page).toHaveURL(/[?&]from=2026-12-20&to=2026-12-20/);
+    await page.getByRole('button', { name: /^Dates/ }).click();
+    await calendar.getByRole('button', { name: 'Next month' }).click();
+    await calendar.getByRole('button', { name: 'Sun 20 Dec' }).click();
+    await calendar.getByRole('button', { name: 'Sat 19 Dec' }).click();
+    await expect(calendar).toContainText('Now pick an end date');
+    await calendar.getByRole('button', { name: 'Next month' }).click();
+    await calendar.getByRole('button', { name: 'Next month' }).click();
 
-    await page.getByLabel('To').fill('2027-06-01');
-    await expect(page).toHaveURL(/[?&]from=2026-12-20&to=2027-02-19/);
+    await expect(calendar.getByRole('button', { name: 'Thu 18 Feb' })).toBeEnabled();
+    await expect(calendar.getByRole('button', { name: 'Fri 19 Feb' })).toBeDisabled();
+    await calendar.getByRole('button', { name: 'Thu 18 Feb' }).click();
+    await expect(page).toHaveURL(/[?&]from=2026-12-19&to=2027-02-18/);
 });
 
 test('competition shortcuts: Big 5 + UEFA, All, and choosing everything again means all', async ({ page }) => {
@@ -246,6 +241,7 @@ test('changing any other filter clears the chosen day', async ({ page }) => {
     await expect(page).not.toHaveURL(/[?&]day=/);
 
     await pickDay();
+    await page.getByRole('button', { name: /^Dates/ }).click();
     await page.getByRole('button', { name: '14 days' }).click();
     await expect(page).not.toHaveURL(/[?&]day=/);
 

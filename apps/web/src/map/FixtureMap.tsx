@@ -1,11 +1,12 @@
 import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import { type CSSProperties, useEffect } from 'react';
-import { MapContainer, Marker, Popup, TileLayer, useMap, ZoomControl } from 'react-leaflet';
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap, ZoomControl } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
-import type { Area, FixtureView } from '../browse/viewFixtures';
+import type { Area, FixtureView, Near } from '../browse/viewFixtures';
 import styles from './FixtureMap.module.css';
-import { clusterIcon, pinIcon } from './pins';
+import { clusterIcon, homeIcon, pinIcon } from './pins';
 
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
 const ESRI_ATTRIBUTION =
@@ -29,6 +30,7 @@ function FixturePopup({ fixture }: { fixture: FixtureView }) {
                         {fixture.approximate && ' · Location approximate'}
                     </div>
                 )}
+                {fixture.travelText && <div className={styles.meta}>{fixture.travelText}</div>}
                 {fixture.tbc && (
                     <div className={styles.tbc} title={fixture.tbc.long}>
                         {fixture.tbc.short}
@@ -70,12 +72,32 @@ function SizeWatcher() {
     return null;
 }
 
+function NearLayer({ near }: { near: Near }) {
+    const map = useMap();
+    const { lat, lng, radius } = near;
+    useEffect(() => {
+        map.fitBounds(L.latLng(lat, lng).toBounds(radius * 2000), { padding: [20, 20] });
+    }, [map, lat, lng, radius]);
+    return (
+        <>
+            <Circle
+                center={[lat, lng]}
+                radius={radius * 1000}
+                pathOptions={{ color: '#10b981', weight: 1.5, dashArray: '6 6', fillOpacity: 0.05 }}
+                interactive={false}
+            />
+            <Marker position={[lat, lng]} icon={homeIcon()} title={near.name} keyboard={false} zIndexOffset={1000} />
+        </>
+    );
+}
+
 interface Props {
     fixtures: FixtureView[];
+    near: Near | null;
     onAreaChange: (area: Area) => void;
 }
 
-export function FixtureMap({ fixtures, onAreaChange }: Props) {
+export function FixtureMap({ fixtures, near, onAreaChange }: Props) {
     return (
         <MapContainer className={styles.map} center={[49, 8]} zoom={5} zoomControl={false} worldCopyJump>
             <ZoomControl position="topright" />
@@ -83,6 +105,7 @@ export function FixtureMap({ fixtures, onAreaChange }: Props) {
             <SizeWatcher />
             <TileLayer url={DARK_BASE} maxNativeZoom={16} maxZoom={19} attribution={ESRI_ATTRIBUTION} />
             <TileLayer url={DARK_LABELS} maxNativeZoom={16} maxZoom={19} />
+            {near && <NearLayer near={near} />}
             <MarkerClusterGroup
                 maxClusterRadius={45}
                 showCoverageOnHover={false}

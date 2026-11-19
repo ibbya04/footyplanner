@@ -17,6 +17,8 @@ Short records of the decisions that shape footyplanner: the context, what was ch
 | [0011](0011-crests-copied-to-r2.md)                            | Crests and logos copied to R2                           | Accepted |
 | [0012](0012-react-frontend-built-alongside-the-legacy-page.md) | React frontend, built alongside the legacy page         | Accepted |
 | [0013](0013-browsing-filters-in-the-url-and-the-browser.md)    | Browsing filters live in the URL and run in the browser | Accepted |
+| [0014](0014-place-search-calls-photon-from-the-browser.md)     | Place search calls Photon from the browser              | Accepted |
+| [0015](0015-rough-travel-time-estimates.md)                    | Rough travel-time estimates from straight-line distance | Accepted |
 
 ## Template
 

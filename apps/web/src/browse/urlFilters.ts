@@ -1,5 +1,5 @@
 import { addDays, type DateRange, nextDays } from '../dates';
-import type { Filters } from './viewFixtures';
+import type { Filters, Near } from './viewFixtures';
 
 export type UrlFilters = Omit<Filters, 'area'> & { inView: boolean };
 
@@ -10,6 +10,8 @@ export interface UrlContext {
 
 const DEFAULT_DAYS = 7;
 export const MAX_RANGE_DAYS = 62;
+export const RADII_KM = [25, 50, 100, 200, 400];
+export const DEFAULT_RADIUS_KM = 100;
 
 export function defaultRange(today: string): DateRange {
     return nextDays(today, DEFAULT_DAYS);
@@ -43,8 +45,24 @@ function readDay(params: URLSearchParams): string | null {
     return isDay(day) ? day : null;
 }
 
+const isLat = (n: number) => Number.isFinite(n) && Math.abs(n) <= 90;
+const isLng = (n: number) => Number.isFinite(n) && Math.abs(n) <= 180;
+
+function readNear(params: URLSearchParams): Near | null {
+    const [lat, lng, radius, ...name] = (params.get('n') ?? '').split(',');
+    const place = { lat: Number(lat), lng: Number(lng), name: name.join(',') };
+    if (!lat || !lng || !isLat(place.lat) || !isLng(place.lng) || !place.name) return null;
+    const km = Number(radius);
+    return { ...place, radius: RADII_KM.includes(km) ? km : DEFAULT_RADIUS_KM };
+}
+
+function writeNear(near: Near): string {
+    return [near.lat.toFixed(4), near.lng.toFixed(4), near.radius, near.name].join(',');
+}
+
 export function readFilters(params: URLSearchParams, context: UrlContext): UrlFilters {
     const range = readRange(params, context.today);
+    const near = readNear(params);
     return {
         range,
         comps: readComps(params, context.competitions),
@@ -52,6 +70,8 @@ export function readFilters(params: URLSearchParams, context: UrlContext): UrlFi
         search: params.get('q') ?? '',
         timeZone: params.get('tz') === 'mine' ? 'mine' : 'venue',
         inView: params.get('in') === 'map',
+        near,
+        sort: near && params.get('sort') === 'distance' ? 'distance' : 'time',
     };
 }
 
@@ -67,5 +87,7 @@ export function writeFilters(filters: UrlFilters, context: UrlContext): URLSearc
     if (filters.search) params.set('q', filters.search);
     if (filters.timeZone === 'mine') params.set('tz', 'mine');
     if (filters.inView) params.set('in', 'map');
+    if (filters.near) params.set('n', writeNear(filters.near));
+    if (filters.near && filters.sort === 'distance') params.set('sort', 'distance');
     return params;
 }

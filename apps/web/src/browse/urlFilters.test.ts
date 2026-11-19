@@ -16,6 +16,8 @@ describe('URL filters', () => {
             search: '',
             timeZone: 'venue',
             inView: false,
+            near: null,
+            sort: 'time',
         });
         expect(writeFilters(filters, context).toString()).toBe('');
     });
@@ -28,14 +30,28 @@ describe('URL filters', () => {
             search: 'real madrid',
             timeZone: 'mine' as const,
             inView: true,
+            near: { name: 'Liverpool, Merseyside', lat: 53.4084, lng: -2.9916, radius: 50 },
+            sort: 'distance' as const,
         };
 
         const params = writeFilters(filters, context);
 
         expect(params.toString()).toBe(
-            'from=2026-12-05&to=2026-12-13&comps=eng.1%2Cesp.1&day=2026-12-06&q=real+madrid&tz=mine&in=map',
+            'from=2026-12-05&to=2026-12-13&comps=eng.1%2Cesp.1&day=2026-12-06&q=real+madrid&tz=mine&in=map' +
+                '&n=53.4084%2C-2.9916%2C50%2CLiverpool%2C+Merseyside&sort=distance',
         );
         expect(readFilters(params, context)).toEqual({ ...filters, comps: ['eng.1', 'esp.1'] });
+    });
+
+    it('writes a place to four decimal places, as the legacy page did', () => {
+        const near = { name: 'My location', lat: 48.137412, lng: 11.575488, radius: 100 };
+
+        expect(writeFilters({ ...read(''), near }, context).get('n')).toBe('48.1374,11.5755,100,My location');
+    });
+
+    it('sorts by time when no place is set, whatever the URL says', () => {
+        expect(read('sort=distance').sort).toBe('time');
+        expect(writeFilters({ ...read(''), sort: 'distance' }, context).toString()).toBe('');
     });
 
     describe('falls back when the URL is broken or edited by hand', () => {
@@ -68,6 +84,18 @@ describe('URL filters', () => {
         it('drops a malformed day', () => {
             expect(read('day=soon').day).toBeNull();
             expect(read('day=2026-02-30').day).toBeNull();
+        });
+
+        it('drops a place with bad coordinates or no name', () => {
+            expect(read('n=abc,11.5755,100,Munich').near).toBeNull();
+            expect(read('n=48.1374,200,100,Munich').near).toBeNull();
+            expect(read('n=48.1374,11.5755,100').near).toBeNull();
+            expect(read('n=48.1374,11.5755,100,').near).toBeNull();
+        });
+
+        it('uses 100 km for a radius that is not one of the choices', () => {
+            expect(read('n=48.1374,11.5755,75,Munich').near?.radius).toBe(100);
+            expect(read('n=48.1374,11.5755,,Munich').near?.radius).toBe(100);
         });
 
         it('keeps a real day just after the range, where a late kick-off can land in your own time', () => {

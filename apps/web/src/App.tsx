@@ -43,10 +43,11 @@ function Planner({ competitions }: { competitions: Competition[] }) {
                 statusLine={statusLine}
                 today={today}
                 loading={fixtures.isPending}
+                mapCentre={area && { lat: (area.south + area.north) / 2, lng: (area.west + area.east) / 2 }}
             />
             <ResizeHandle {...sidebar} />
             <div className={styles.mapWrap}>
-                <FixtureMap fixtures={view.fixtures} onAreaChange={setArea} />
+                <FixtureMap fixtures={view.fixtures} near={filters.near} onAreaChange={setArea} />
             </div>
         </main>
     );

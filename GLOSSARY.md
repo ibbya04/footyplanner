@@ -23,6 +23,10 @@ _Avoid_: Stadium, ground, location
 **Venue override**:
 A manual correction to a venue's location that wins over geocoding.
 
+**Place**:
+The point a visitor searches near, found by place search or "My location", with a radius in kilometres.
+_Avoid_: Home, location (for the visitor's point)
+
 **Crest**:
 A team's or competition's badge image, served from footyplanner's own storage.
 _Avoid_: Logo, badge
@@ -30,7 +34,7 @@ _Avoid_: Logo, badge
 ## Ingestion
 
 **Ingestion**:
-Copying fixture data from ESPN into footyplanner's database. Only ingestion talks to ESPN or the geocoder; visitors never do.
+Copying fixture data from ESPN into footyplanner's database. Only ingestion fetches ESPN or the geocoder from the Worker; a visitor's request never does. (Place search in the browser calls the geocoder directly.)
 _Avoid_: Sync, scraping
 
 **Ingest run**:

@@ -1,4 +1,13 @@
-import type { Competition, Fixture } from '@footyplanner/shared';
+import {
+    type Competition,
+    distanceKm,
+    distLabel,
+    type Fixture,
+    FLY_KM,
+    formatMinutes,
+    travelLabel,
+    travelMinutes,
+} from '@footyplanner/shared';
 import type { DateRange } from '../dates';
 import { type TbcGuidance, tbcGuidance } from './tbc';
 import { dateLabel, dayIn, timeIn, venueZone, zoneName } from './timeZones';
@@ -10,6 +19,15 @@ export interface Area {
     east: number;
 }
 
+export interface Near {
+    name: string;
+    lat: number;
+    lng: number;
+    radius: number;
+}
+
+export type SortBy = 'time' | 'distance';
+
 export interface Filters {
     range: DateRange;
     comps: 'all' | string[];
@@ -17,6 +35,8 @@ export interface Filters {
     search: string;
     timeZone: 'venue' | 'mine';
     area: Area | null;
+    near: Near | null;
+    sort: SortBy;
 }
 
 export interface ViewContext {
@@ -39,6 +59,9 @@ export interface FixtureView extends Fixture {
     venueText: string | null;
     tbc: TbcGuidance | null;
     approximate: boolean;
+    distanceKm: number | null;
+    distanceText: string | null;
+    travelText: string | null;
 }
 
 export interface DayCount {
@@ -109,6 +132,34 @@ function insideArea(fixture: Fixture, area: Area | null): boolean {
     return lat >= area.south && lat <= area.north && lng >= area.west && lng <= area.east;
 }
 
+function distanceFrom(fixture: Fixture, near: Near | null): number | null {
+    const lat = fixture.venue?.lat;
+    const lng = fixture.venue?.lng;
+    if (!near || lat == null || lng == null) return null;
+    return distanceKm(near, { lat, lng });
+}
+
+function distanceText(km: number | null): string | null {
+    if (km === null) return null;
+    return `${distLabel(km)} · ≈${formatMinutes(travelMinutes(km))}${km > FLY_KM ? ' by air' : ''}`;
+}
+
+function travelText(km: number | null, near: Near | null): string | null {
+    return km === null || !near ? null : `${travelLabel(km)} from ${near.name}`;
+}
+
+function withinReach(distance: number | null, near: Near | null): boolean {
+    return !near || (distance !== null && distance <= near.radius);
+}
+
+function byKickoff(a: FixtureView, b: FixtureView): number {
+    return a.kickoff.localeCompare(b.kickoff) || a.competition.short.localeCompare(b.competition.short);
+}
+
+function byDistance(a: FixtureView, b: FixtureView): number {
+    return (a.distanceKm ?? 0) - (b.distanceKm ?? 0) || byKickoff(a, b);
+}
+
 function matchesSearch(text: string, search: string): boolean {
     const words = search.toLowerCase().split(/\s+/).filter(Boolean);
     return words.every(word => text.includes(word));
@@ -131,6 +182,8 @@ export function viewFixtures(
         if (day < filters.range.from || day > filters.range.to) continue;
         if (!matchesSearch(searchText(fixture, competition), filters.search)) continue;
         if (!insideArea(fixture, filters.area)) continue;
+        const distance = distanceFrom(fixture, filters.near);
+        if (!withinReach(distance, filters.near)) continue;
         const shownZone = filters.timeZone === 'mine' ? context.myZone : zoneAtVenue;
         const at = kickoffAt(fixture, shownZone);
         views.push({
@@ -143,9 +196,12 @@ export function viewFixtures(
             venueText: venueText(fixture),
             tbc: tbcGuidance(fixture, competition, day, context.today),
             approximate: fixture.venue?.precision === 'city',
+            distanceKm: distance,
+            distanceText: distanceText(distance),
+            travelText: travelText(distance, filters.near),
         });
     }
-    views.sort((a, b) => a.kickoff.localeCompare(b.kickoff) || a.competition.short.localeCompare(b.competition.short));
+    views.sort(filters.near && filters.sort === 'distance' ? byDistance : byKickoff);
     const days = countDays(views);
     const day = days.some(d => d.day === filters.day) ? filters.day : null;
     return { days, fixtures: day ? views.filter(v => v.day === day) : views };
