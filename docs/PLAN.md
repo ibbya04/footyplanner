@@ -109,7 +109,7 @@ Removed: `/api/venue` (coordinates are already included in each fixture) and, on
 
 ## Steps
 
-Each step is its own branch and pull request, done in a git worktree. The site keeps working after every step. Tests and an ADR are written alongside each step.
+Each step is its own branch and pull request; call the `start-work` skill to begin one. The site keeps working after every step. Tests and an ADR are written alongside each step.
 
 1. **Move to Workers (1a)**
     - pnpm workspaces (`apps/web`, `apps/api`, `packages/shared`), TypeScript, ESLint, Prettier, `wrangler.jsonc`.
