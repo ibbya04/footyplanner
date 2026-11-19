@@ -1,7 +1,7 @@
 import { expect, test } from './test';
 
-test('the map shows upcoming fixtures from the API', async ({ page }) => {
-    await page.goto('/next/');
+test('the home page maps upcoming fixtures from the API', async ({ page }) => {
+    await page.goto('/');
 
     await expect(page.getByRole('status')).toHaveText('3 fixtures');
     await expect(page.locator('.leaflet-tile-pane')).toBeAttached();
@@ -11,10 +11,4 @@ test('the map shows upcoming fixtures from the API', async ({ page }) => {
     await pin.click();
     await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Arsenal');
     await expect(page.locator('.leaflet-popup')).toContainText('anfield, liverpool');
-});
-
-test('the legacy page still serves at the root', async ({ page }) => {
-    const response = await page.goto('/');
-    expect(response?.status()).toBe(200);
-    await expect(page).toHaveTitle('Footy Planner');
 });

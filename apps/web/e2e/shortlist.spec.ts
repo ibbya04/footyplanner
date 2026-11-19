@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './test';
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/next/');
+    await page.goto('/');
 });
 
 const shortlistTab = (page: Page) => page.getByRole('tab', { name: /Shortlist/ });

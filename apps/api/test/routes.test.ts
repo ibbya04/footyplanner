@@ -163,6 +163,19 @@ describe('GET /img/*', () => {
     });
 });
 
+describe('the legacy page endpoints', () => {
+    it('are gone, and never reach ESPN or Photon', async () => {
+        const upstream = vi.spyOn(globalThis, 'fetch');
+        upstream.mockClear();
+        for (const path of ['/api/day?date=2026-11-22&comps=eng.1', '/api/venue?name=Anfield&city=Liverpool']) {
+            const res = await api(path);
+            expect(res.status).toBe(404);
+            expect(res.headers.get('Cache-Control')).toBe('no-store');
+        }
+        expect(upstream).not.toHaveBeenCalled();
+    });
+});
+
 describe('rate limiting', () => {
     it('answers 429 when the limiter says no', async () => {
         const limiter = { limit: vi.fn(async () => ({ success: false })) };

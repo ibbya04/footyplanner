@@ -2,7 +2,7 @@
 
 A single-page map of the football matches on across Europe for a set of dates. You can use it to see which games you could get to while travelling.
 
-It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 database every minute, locates stadiums on OpenStreetMap and copies crests into R2; the API serves from D1 and is cached at Cloudflare's edge. No API keys. A React version of the page is being built at `/next/`. The rebuild is under way one step at a time: see [docs/PLAN.md](docs/PLAN.md) and the decision records in [docs/adr/](docs/adr/).
+It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 database every minute, locates stadiums on OpenStreetMap and copies crests into R2; the API serves from D1 and is cached at Cloudflare's edge. No API keys. The rebuild is under way one step at a time: see [docs/PLAN.md](docs/PLAN.md) and the decision records in [docs/adr/](docs/adr/).
 
 ## How it works
 
@@ -47,10 +47,9 @@ apps/api/            Cloudflare Worker (Hono): API routes, cron ingestion, wrang
   src/routes/        /api/* and /img/*
   migrations/        D1 migrations (schema from drizzle-kit, plus seed data)
   test/              Vitest, run inside the Workers runtime with local D1 and R2
-apps/web/            the React app (Vite), served at /next/ until it replaces the legacy page
+apps/web/            the React app (Vite), served at /
   src/               components, API client (Hono RPC) and queries (TanStack Query)
   e2e/               Playwright tests and their seed data
-  legacy/            the current single-page app, copied into the build and served at /
 packages/shared/     code used by both: API response types, ESPN types, distance and region checks
 ```
 
@@ -65,19 +64,14 @@ The Worker only runs for `/api/*` and `/img/*`; everything else is served straig
 - **`/api/status`** the last cron run and, per competition, how many months have been fetched, when last and whether any are failing.
 - **`/img/teams/<id>.png`, `/img/leagues/<slug>.png`** crests and logos from R2.
 
-The legacy page still uses two older endpoints, which go in step 3:
-
-- **`/api/day?date=YYYY-MM-DD&comps=eng.1,esp.1,…`** fetches every requested competition for one day from ESPN in a single response, cut down to the fields the page uses, and edge-cached: about 2 minutes around today (live scores), 3 hours for future days and a week for finished ones. A two-week window takes about 15 requests instead of about 120.
-- **`/api/venue?name=&city=&country=`** looks up a stadium on Photon once and caches the answer at the edge for 30 days.
-
-Errors and bad requests are sent with `Cache-Control: no-store` so they're never cached. The page detects the backend automatically. When it's opened as a file or the API fails, it calls ESPN and Photon directly as before.
+Errors and bad requests are sent with `Cache-Control: no-store` so they're never cached. Only the cron calls ESPN and Photon; the page's place search calls Photon from the browser.
 
 ## Development
 
 ```
-pnpm build          # build the React app and copy the legacy page into apps/web/dist
+pnpm build          # build the React app into apps/web/dist
 pnpm dev            # wrangler dev on http://localhost:8787 (built pages + API); run pnpm build first
-pnpm --filter @footyplanner/web dev   # Vite with hot reload on http://localhost:5173/next/, proxying /api to :8787
+pnpm --filter @footyplanner/web dev   # Vite with hot reload on http://localhost:5173/, proxying /api to :8787
 pnpm e2e            # Playwright against wrangler dev with a seeded local database
 pnpm test           # Vitest; the API tests run inside the Workers runtime
 pnpm typecheck
@@ -99,7 +93,7 @@ After changing `src/db/schema.ts`, run `pnpm db:generate` to write a migration, 
 
 ## Deploying (Cloudflare)
 
-GitHub Actions (`.github/workflows/ci.yml`) checks formatting, lint, types, tests and the frontend build on every pull request and push, and runs the Playwright tests in a separate job. Pull requests also upload a preview version (`pr-<number>-footyplanner.<account>.workers.dev`) and comment a link to the React app at `/next/` on it. Pushes to `main` apply D1 migrations, then deploy with `wrangler deploy`. Migrations have to stay backwards compatible (add columns and tables, don't rename or drop), because the previous version keeps serving until the deploy finishes, and preview versions share the production database.
+GitHub Actions (`.github/workflows/ci.yml`) checks formatting, lint, types, tests and the frontend build on every pull request and push, and runs the Playwright tests in a separate job. Pull requests also upload a preview version (`pr-<number>-footyplanner.<account>.workers.dev`) and comment a link to it. Pushes to `main` apply D1 migrations, then deploy with `wrangler deploy`. Migrations have to stay backwards compatible (add columns and tables, don't rename or drop), because the previous version keeps serving until the deploy finishes, and preview versions share the production database.
 
 The deploy jobs need two repository secrets:
 

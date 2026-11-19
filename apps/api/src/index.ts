@@ -2,11 +2,9 @@ import { Hono } from 'hono';
 import { NO_STORE } from './cache';
 import { runIngest } from './ingest/run';
 import { competitionsRoute } from './routes/competitions';
-import { day } from './routes/day';
 import { fixturesRoute } from './routes/fixtures';
 import { imagesRoute } from './routes/images';
 import { statusRoute } from './routes/status';
-import { venue } from './routes/venue';
 
 const api = new Hono<{ Bindings: Env }>()
     .use(async (c, next) => {
@@ -19,9 +17,7 @@ const api = new Hono<{ Bindings: Env }>()
     })
     .route('/fixtures', fixturesRoute)
     .route('/competitions', competitionsRoute)
-    .route('/status', statusRoute)
-    .route('/day', day)
-    .route('/venue', venue);
+    .route('/status', statusRoute);
 
 const app = new Hono<{ Bindings: Env }>()
     .route('/api', api)

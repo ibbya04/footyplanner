@@ -1,5 +1,4 @@
 pnpm-lock.yaml
-apps/web/legacy/
 apps/api/migrations/meta/
 **/.wrangler/
 **/worker-configuration.d.ts

@@ -1,6 +1,6 @@
 # 0012. React frontend, built alongside the legacy page
 
-- Status: Accepted
+- Status: Accepted; serving at `/next/` superseded by [0017](0017-react-app-replaces-the-legacy-page.md)
 - Date: 2026-11-19
 
 ## Context
