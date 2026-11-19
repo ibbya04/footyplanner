@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) in review.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) merged in [PR #9](https://github.com/ibbya04/footyplanner/pull/9).
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 
@@ -129,7 +129,7 @@ Each step is its own branch and pull request; call the `start-work` skill to beg
     - **3b. Browse:** date range with presets (capped at 62 days, the `/api/fixtures` limit, so one request covers it), competitions picker from `/api/competitions`, filters in the URL (a clean URL means no filters), fixture list with day chips, search, "only fixtures in map view", time zone toggle, TBC guidance, "location approximate" hint for venues with `precision: city`, "Data updated" label from `/api/status`, resizable sidebar. All competitions are fetched once per range and filtered in the browser ([ADR 0013](adr/0013-browsing-filters-in-the-url-and-the-browser.md)).
     - **3c. Near a place:** place search, distance and travel-time estimates (moved into `packages/shared`), sort by distance. Decide whether the browser keeps calling Photon for place search or goes through a cached `/api/places`.
     - **3d. Shortlist:** shortlist in `localStorage` (reading the legacy keys, so existing shortlists carry over), itinerary with clash warnings and travel between matches, route on the map, ICS export, Google Maps links.
-    - **3e. Cutover:** React moves to `/`. Remove `/api/day`, `/api/venue` and the legacy `index.html`. Playwright covers the main journeys.
+    - **3e. Cutover:** React moves to `/`. Remove `/api/day`, `/api/venue` and the legacy `index.html`, and point the pull request preview comment in `ci.yml` at `/` instead of `/next/`. Playwright covers the main journeys.
 4. **Saved trips**
     - `trips` table, `POST`/`GET`/`PUT /api/trips`, `/t/{id}` page, `/t/{id}.ics` feed (ICS code moved into `packages/shared`).
 5. **Docs**
