@@ -27,13 +27,7 @@ A map of European football fixtures for planning trips. One Cloudflare Worker se
 - Before pushing a pull request, fetch and rebase on `origin/main`, then rerun the checks if anything came in.
 - Merging to `main` deploys: CI applies D1 migrations to production, then runs `wrangler deploy`. Migrations must be safe to apply before the new code is live.
 - Visitor requests never call ESPN or Photon. Only the cron fetches upstream data.
-- Test-driven development for code changes, using the `mattpocock-skills:tdd` skill. Agree the seams under test first. Then work one vertical slice at a time: write a failing test, run it and see it fail for the right reason, then write the minimal code to make it pass. Bugs start as a failing test that reproduces them. Refactors keep the existing tests green instead of starting red. Skip test-first only for changes with no testable behaviour, and say so when skipping:
-    - docs, ADRs, the plan and this file
-    - config values (measure their effect instead)
-    - generated files (migrations, `worker-configuration.d.ts`, the route type declarations); test the behaviour that changed instead
-    - pure styling and layout (check with a screenshot)
-    - things only Cloudflare shows (CPU time, Workers Cache, cron triggering, plan limits); check them on a preview or in production
-    - throwaway spikes, which are deleted and redone test-first
+- Test-driven development for code changes: follow "Tests come first" in `CODING_STANDARDS.md`, which review checks, including recording each red run for the PR description.
 - Tests run inside workerd against local D1 and R2 (`@cloudflare/vitest-plugin`). Ingestion tests use the fake upstream in `apps/api/test/ingest/fake-upstream.ts` and saved ESPN responses, never the real APIs.
 
 ## Cloudflare Free plan limits
