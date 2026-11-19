@@ -1,6 +1,5 @@
-import type { Competition } from '@footyplanner/shared';
 import { describe, expect, it } from 'vitest';
-import { buildIcs, type CalendarFixture } from './ics';
+import { buildIcs, type CalendarFixture, type Competition } from '../src';
 
 const premierLeague: Competition = {
     slug: 'eng.1',

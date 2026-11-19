@@ -3,10 +3,12 @@ import {
     distanceKm,
     distLabel,
     type Fixture,
+    fixtureTitle,
     FLY_KM,
     formatMinutes,
     travelLabel,
     travelMinutes,
+    venueText,
 } from '@footyplanner/shared';
 import type { DateRange } from '../dates';
 import { type TbcGuidance, tbcGuidance } from './tbc';
@@ -93,13 +95,6 @@ function kickoffText(fixture: Fixture, at: KickoffAt, zone: string, myZone: stri
     const yours = timeIn(myZone, fixture.kickoff);
     const hint = zone !== myZone && yours !== at.time ? ` (${yours} yours)` : '';
     return `${at.date} · ${at.time} ${at.zone}${hint}`;
-}
-
-const teamName = (team: Fixture['home']) => team?.shortName ?? team?.name ?? 'TBD';
-
-function venueText(fixture: Fixture): string | null {
-    const { venue } = fixture;
-    return venue ? [venue.name, venue.city].filter(Boolean).join(', ') : null;
 }
 
 function directionsUrl(fixture: Fixture): string | null {
@@ -191,7 +186,7 @@ function viewFixture(
         day: fixtureDay(fixture, shownZone),
         kickoffAt: at,
         kickoffText: kickoffText(fixture, at, shownZone, context.myZone),
-        title: `${teamName(fixture.home)} v ${teamName(fixture.away)}`,
+        title: fixtureTitle(fixture),
         venueText: venueText(fixture),
         tbc: tbcGuidance(fixture, competition, fixtureDay(fixture, zoneAtVenue), context.today),
         approximate: fixture.venue?.precision === 'city',

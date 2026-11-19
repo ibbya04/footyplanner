@@ -1,10 +1,11 @@
-import type { FixtureView } from '../browse/viewFixtures';
-import { addDays } from '../dates';
+import type { Competition, Fixture } from './api';
 
-export type CalendarFixture = Pick<
-    FixtureView,
-    'id' | 'kickoff' | 'timeConfirmed' | 'day' | 'title' | 'competition' | 'venueText' | 'venue' | 'url'
->;
+export type CalendarFixture = Pick<Fixture, 'id' | 'kickoff' | 'timeConfirmed' | 'venue' | 'url'> & {
+    day: string;
+    title: string;
+    competition: Pick<Competition, 'name'>;
+    venueText: string | null;
+};
 
 const MATCH_MS = 2 * 3_600_000;
 const MAX_LINE_BYTES = 75;
@@ -43,12 +44,11 @@ function fold(line: string): string {
 
 const dateValue = (day: string) => day.replaceAll('-', '');
 
+const nextDay = (day: string) => new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+
 function when(fixture: CalendarFixture): string[] {
     if (!fixture.timeConfirmed) {
-        return [
-            `DTSTART;VALUE=DATE:${dateValue(fixture.day)}`,
-            `DTEND;VALUE=DATE:${dateValue(addDays(fixture.day, 1))}`,
-        ];
+        return [`DTSTART;VALUE=DATE:${dateValue(fixture.day)}`, `DTEND;VALUE=DATE:${dateValue(nextDay(fixture.day))}`];
     }
     const start = new Date(fixture.kickoff);
     return [`DTSTART:${stamp(start)}`, `DTEND:${stamp(new Date(start.getTime() + MATCH_MS))}`];
