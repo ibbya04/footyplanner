@@ -31,6 +31,12 @@
     border-style: dashed;
 }
 
+.saved {
+    box-shadow:
+        0 0 0 3px #facc15,
+        0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
 .logo {
     padding: 0;
     width: 30px;
@@ -112,4 +118,29 @@
     place-items: center;
     border: 2px solid #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.popActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    padding-top: 2px;
+}
+
+.popActions a,
+.popActions button {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.popActions a:hover,
+.popActions button:hover {
+    text-decoration: underline;
 }

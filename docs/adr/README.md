@@ -19,6 +19,7 @@ Short records of the decisions that shape footyplanner: the context, what was ch
 | [0013](0013-browsing-filters-in-the-url-and-the-browser.md)    | Browsing filters live in the URL and run in the browser | Accepted |
 | [0014](0014-place-search-calls-photon-from-the-browser.md)     | Place search calls Photon from the browser              | Accepted |
 | [0015](0015-rough-travel-time-estimates.md)                    | Rough travel-time estimates from straight-line distance | Accepted |
+| [0016](0016-shortlist-kept-in-the-browser.md)                  | Shortlist kept in the browser as fixture copies         | Accepted |
 
 ## Template
 

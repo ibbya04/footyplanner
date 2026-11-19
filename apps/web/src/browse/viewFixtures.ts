@@ -62,6 +62,7 @@ export interface FixtureView extends Fixture {
     distanceKm: number | null;
     distanceText: string | null;
     travelText: string | null;
+    directionsUrl: string | null;
 }
 
 export interface DayCount {
@@ -99,6 +100,13 @@ const teamName = (team: Fixture['home']) => team?.shortName ?? team?.name ?? 'TB
 function venueText(fixture: Fixture): string | null {
     const { venue } = fixture;
     return venue ? [venue.name, venue.city].filter(Boolean).join(', ') : null;
+}
+
+function directionsUrl(fixture: Fixture): string | null {
+    const { venue } = fixture;
+    if (venue?.lat == null || venue.lng == null) return null;
+    const query = [venue.name, venue.city].filter(Boolean).join(' ');
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function kickoffAt(fixture: Fixture, zone: string): KickoffAt {
@@ -165,6 +173,35 @@ function matchesSearch(text: string, search: string): boolean {
     return words.every(word => text.includes(word));
 }
 
+type ViewOptions = Pick<Filters, 'timeZone' | 'near'>;
+
+function viewFixture(
+    fixture: Fixture,
+    competition: Competition,
+    filters: ViewOptions,
+    context: ViewContext,
+): FixtureView {
+    const zoneAtVenue = venueZone(fixture.venue?.country ?? null, fixture.venue?.lng ?? null);
+    const shownZone = filters.timeZone === 'mine' ? context.myZone : zoneAtVenue;
+    const at = kickoffAt(fixture, shownZone);
+    const distance = distanceFrom(fixture, filters.near);
+    return {
+        ...fixture,
+        competition,
+        day: fixtureDay(fixture, shownZone),
+        kickoffAt: at,
+        kickoffText: kickoffText(fixture, at, shownZone, context.myZone),
+        title: `${teamName(fixture.home)} v ${teamName(fixture.away)}`,
+        venueText: venueText(fixture),
+        tbc: tbcGuidance(fixture, competition, fixtureDay(fixture, zoneAtVenue), context.today),
+        approximate: fixture.venue?.precision === 'city',
+        distanceKm: distance,
+        distanceText: distanceText(distance),
+        travelText: travelText(distance, filters.near),
+        directionsUrl: directionsUrl(fixture),
+    };
+}
+
 export function viewFixtures(
     fixtures: Fixture[],
     competitions: Competition[],
@@ -182,27 +219,27 @@ export function viewFixtures(
         if (day < filters.range.from || day > filters.range.to) continue;
         if (!matchesSearch(searchText(fixture, competition), filters.search)) continue;
         if (!insideArea(fixture, filters.area)) continue;
-        const distance = distanceFrom(fixture, filters.near);
-        if (!withinReach(distance, filters.near)) continue;
-        const shownZone = filters.timeZone === 'mine' ? context.myZone : zoneAtVenue;
-        const at = kickoffAt(fixture, shownZone);
-        views.push({
-            ...fixture,
-            competition,
-            day: fixtureDay(fixture, shownZone),
-            kickoffAt: at,
-            kickoffText: kickoffText(fixture, at, shownZone, context.myZone),
-            title: `${teamName(fixture.home)} v ${teamName(fixture.away)}`,
-            venueText: venueText(fixture),
-            tbc: tbcGuidance(fixture, competition, day, context.today),
-            approximate: fixture.venue?.precision === 'city',
-            distanceKm: distance,
-            distanceText: distanceText(distance),
-            travelText: travelText(distance, filters.near),
-        });
+        const view = viewFixture(fixture, competition, filters, context);
+        if (!withinReach(view.distanceKm, filters.near)) continue;
+        views.push(view);
     }
     views.sort(filters.near && filters.sort === 'distance' ? byDistance : byKickoff);
     const days = countDays(views);
     const day = days.some(d => d.day === filters.day) ? filters.day : null;
     return { days, fixtures: day ? views.filter(v => v.day === day) : views };
+}
+
+export function viewShortlist(
+    saved: Fixture[],
+    competitions: Competition[],
+    filters: ViewOptions,
+    context: ViewContext,
+): FixtureView[] {
+    const bySlug = new Map(competitions.map(c => [c.slug, c]));
+    return saved
+        .flatMap(fixture => {
+            const competition = bySlug.get(fixture.comp);
+            return competition ? [viewFixture(fixture, competition, filters, context)] : [];
+        })
+        .sort(byKickoff);
 }
