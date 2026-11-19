@@ -1,0 +1,35 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": { "type": "Point", "coordinates": [4.8936041, 52.3730796] },
+            "properties": {
+                "osm_type": "R",
+                "osm_id": 271110,
+                "osm_key": "place",
+                "osm_value": "city",
+                "type": "city",
+                "name": "Amsterdam",
+                "state": "North Holland",
+                "country": "Netherlands",
+                "countrycode": "NL"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": { "type": "Point", "coordinates": [-74.188, 42.938] },
+            "properties": {
+                "osm_type": "N",
+                "osm_id": 158835744,
+                "osm_key": "place",
+                "osm_value": "city",
+                "type": "city",
+                "name": "Amsterdam",
+                "state": "New York",
+                "country": "United States",
+                "countrycode": "US"
+            }
+        }
+    ]
+}

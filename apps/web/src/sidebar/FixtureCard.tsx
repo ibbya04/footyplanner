@@ -39,6 +39,11 @@ export function FixtureCard({ fixture }: { fixture: FixtureView }) {
                     )}
                 </div>
             )}
+            {fixture.distanceText && (
+                <div className={styles.distance} title="Straight-line distance; travel time is a rough estimate">
+                    {fixture.distanceText}
+                </div>
+            )}
             {fixture.tbc && (
                 <div className={styles.tbc} title={fixture.tbc.long}>
                     {fixture.tbc.short}

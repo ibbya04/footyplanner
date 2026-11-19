@@ -59,7 +59,7 @@ function fixture(id: string, kickoff: string, overrides: Partial<Fixture> = {}):
 const weekend = { from: '2026-11-21', to: '2026-11-22' };
 
 function noFilters(range = weekend): Filters {
-    return { range, comps: 'all', day: null, search: '', timeZone: 'venue', area: null };
+    return { range, comps: 'all', day: null, search: '', timeZone: 'venue', area: null, near: null, sort: 'time' };
 }
 
 const context = { today: '2026-11-19', myZone: 'Europe/London' };
@@ -250,6 +250,77 @@ describe('viewFixtures', () => {
         const view = viewFixtures(fixtures, [premierLeague], { ...noFilters(), area: britain }, context);
 
         expect(view.fixtures.map(f => f.id)).toEqual(['eng.1:liverpool']);
+    });
+
+    describe('near a place', () => {
+        const oldTrafford = { ...anfield, name: 'Old Trafford', city: 'Manchester', lat: 53.4631, lng: -2.2913 };
+        const liverpool = { name: 'Liverpool', lat: 53.4084, lng: -2.9916, radius: 100 };
+        const fixtures = [
+            fixture('eng.1:manchester', '2026-11-21T12:30:00.000Z', { venue: oldTrafford }),
+            fixture('eng.1:anfield', '2026-11-21T15:00:00.000Z'),
+            fixture('eng.1:istanbul', '2026-11-21T17:00:00.000Z', { venue: istanbul }),
+            fixture('eng.1:unlocated', '2026-11-21T19:00:00.000Z', { venue: { ...anfield, lat: null, lng: null } }),
+            fixture('eng.1:city', '2026-11-22T15:00:00.000Z', { venue: { ...anfield, precision: 'city' } }),
+        ];
+
+        it('shows only located fixtures within the radius, each with its distance', () => {
+            const view = viewFixtures(fixtures, [premierLeague], { ...noFilters(), near: liverpool }, context);
+
+            expect(view.fixtures.map(f => [f.id, Math.round(f.distanceKm ?? -1)])).toEqual([
+                ['eng.1:manchester', 47],
+                ['eng.1:anfield', 3],
+                ['eng.1:city', 3],
+            ]);
+            expect(view.fixtures.find(f => f.id === 'eng.1:city')?.approximate).toBe(true);
+        });
+
+        it('sorts nearest first when sorting by distance, then by kick-off', () => {
+            const view = viewFixtures(
+                fixtures,
+                [premierLeague],
+                { ...noFilters(), near: liverpool, sort: 'distance' },
+                context,
+            );
+
+            expect(view.fixtures.map(f => f.id)).toEqual(['eng.1:anfield', 'eng.1:city', 'eng.1:manchester']);
+        });
+
+        it('a smaller radius leaves out fixtures further away', () => {
+            const near = { ...liverpool, radius: 25 };
+            const view = viewFixtures(fixtures, [premierLeague], { ...noFilters(), near }, context);
+
+            expect(view.fixtures.map(f => f.id)).toEqual(['eng.1:anfield', 'eng.1:city']);
+        });
+
+        it('describes the distance and rough travel time on cards and on the map', () => {
+            const madrid = { ...anfield, name: 'Bernabéu', city: 'Madrid', lat: 40.4531, lng: -3.6883 };
+            const far = [...fixtures, fixture('eng.1:madrid', '2026-11-22T20:00:00.000Z', { venue: madrid })];
+            const near = { ...liverpool, radius: 2000 };
+            const view = viewFixtures(far, [premierLeague], { ...noFilters(), near }, context);
+            const texts = (id: string) => {
+                const f = view.fixtures.find(v => v.id === id);
+                return [f?.distanceText, f?.travelText];
+            };
+
+            expect(texts('eng.1:manchester')).toEqual(['47 km · ≈50 min', '47 km · ≈50 min drive from Liverpool']);
+            expect(texts('eng.1:madrid')).toEqual([
+                '1442 km · ≈5h by air',
+                '1442 km · ≈5h door to door by air from Liverpool',
+            ]);
+        });
+
+        it('gives no distance and keeps kick-off order when no place is set', () => {
+            const view = viewFixtures(fixtures, [premierLeague], { ...noFilters(), sort: 'distance' }, context);
+
+            expect(view.fixtures.map(f => f.id)).toEqual([
+                'eng.1:manchester',
+                'eng.1:anfield',
+                'eng.1:istanbul',
+                'eng.1:unlocated',
+                'eng.1:city',
+            ]);
+            expect(view.fixtures.every(f => f.distanceKm === null && f.distanceText === null)).toBe(true);
+        });
     });
 
     it('uses the Canary and Azores time zones for venues out in the Atlantic', () => {

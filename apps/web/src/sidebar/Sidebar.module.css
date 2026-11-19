@@ -52,32 +52,212 @@
     font-size: 11px;
 }
 
-.dates {
-    display: grid;
+.trip {
+    display: flex;
     gap: 8px;
     padding: 10px 14px;
     border-bottom: 1px solid var(--line);
 }
 
-.dateFields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+.triggerText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
-.dateFields label {
-    display: grid;
-    gap: 3px;
+.popLabel {
     font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--muted);
 }
 
-.dateFields input {
+.calendar {
+    display: grid;
+    gap: 6px;
+}
+
+.calHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+}
+
+.calNav {
+    background: none;
+    border: 0;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.calNav:hover {
+    background: var(--line);
+    color: var(--text);
+}
+
+.calGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    row-gap: 2px;
+}
+
+.calWeekday {
+    text-align: center;
+    font-size: 11px;
+    color: var(--faint);
+    padding: 2px 0 4px;
+}
+
+.calDay {
+    height: 34px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.calDay:hover:not(:disabled):not([data-start]):not([data-end]) {
+    background: var(--line);
+    border-radius: 8px;
+}
+
+.calDay[data-in] {
+    background: rgba(16, 185, 129, 0.18);
+}
+
+.calDay[data-start],
+.calDay[data-end] {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 700;
+}
+
+.calDay[data-start] {
+    border-radius: 8px 0 0 8px;
+}
+
+.calDay[data-end] {
+    border-radius: 0 8px 8px 0;
+}
+
+.calDay[data-start][data-end] {
+    border-radius: 8px;
+}
+
+.calDay[data-today] {
+    box-shadow: inset 0 0 0 1px var(--muted);
+    border-radius: 8px;
+}
+
+.calDay:disabled {
+    color: var(--faint);
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.calHint {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.nearBox {
+    position: relative;
+}
+
+.field {
+    width: 100%;
     background: var(--bg);
     border: 1px solid var(--line);
     border-radius: 8px;
-    padding: 5px 8px;
-    color-scheme: dark;
+    padding: 7px 28px 7px 10px;
+}
+
+.nearClear {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 0;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.nearClear:hover {
+    color: var(--text);
+}
+
+.suggest {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.suggestion {
+    display: grid;
+    padding: 7px 10px;
+    cursor: pointer;
+}
+
+.suggestion small {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.suggestion:hover,
+.suggestion[aria-selected='true'] {
+    background: var(--panel-2);
+}
+
+.suggestMessage {
+    margin-top: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.problem {
+    margin: 0;
+    font-size: 12px;
+    color: var(--warn);
+}
+
+.segment {
+    display: inline-flex;
+    width: fit-content;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.segment button {
+    background: none;
+    border: 0;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.segment button[aria-pressed='true'] {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
 }
 
 .presets {
@@ -308,6 +488,11 @@
 
 .approx {
     color: var(--faint);
+}
+
+.distance {
+    font-size: 12px;
+    color: var(--accent);
 }
 
 .tbc {
