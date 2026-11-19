@@ -1,3 +1,4 @@
+import footyplanner from '@footyplanner/eslint-plugin';
 import js from '@eslint/js';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
@@ -17,4 +18,5 @@ export default tseslint.config(
     js.configs.recommended,
     ...tseslint.configs.recommended,
     { files: ['apps/web/src/**/*.{ts,tsx}'], ...reactHooks.configs.flat['recommended-latest'] },
+    { plugins: { footyplanner }, rules: { 'footyplanner/no-comments': 'error' } },
 );

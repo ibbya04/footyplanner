@@ -19,3 +19,13 @@ Check:
     - pure styling and layout (check with a screenshot)
     - things only Cloudflare shows (CPU time, Workers Cache, cron triggering, plan limits); check them on a preview or in production
     - throwaway spikes, which are deleted and redone test-first
+
+## Tests never call the real APIs
+
+Tests run offline and give the same result every time, so ESPN, Photon and the crest image hosts are always faked.
+
+Check:
+
+- **API and ingestion tests fetch through the fake upstream** in `apps/api/test/ingest/fake-upstream.ts`, fed with saved ESPN responses from `apps/api/test/fixtures/espn/`. A test that reaches `site.api.espn.com`, `photon.komoot.io` or an image host for real is a finding.
+- **New upstream data comes in as a saved fixture.** A test that needs a new ESPN shape adds a trimmed copy of a real response under `apps/api/test/fixtures/espn/`, not a live call.
+- **Playwright tests read seeded data.** They run against `wrangler dev` with the seed in `apps/web/e2e/seed.sql`, so the page never waits on ingestion. Map tiles are the one external load allowed.

@@ -1,0 +1,16 @@
+{
+    "name": "@footyplanner/eslint-plugin",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.js"
+    },
+    "scripts": {
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "eslint": "^10.0.0",
+        "typescript-eslint": "^8.73.0",
+        "vitest": "^5.1.1"
+    }
+}

@@ -8,6 +8,7 @@ A map of European football fixtures for planning trips. One Cloudflare Worker se
 - `apps/web`: the React app (Vite), served at `/next/` until step 3e moves it to `/`. `src/` for components, the Hono RPC client and TanStack Query hooks; `e2e/` for Playwright tests and their seed data.
 - `apps/web/legacy`: the old single-file page, copied into the build and served at `/` until step 3e.
 - `packages/shared`: types and helpers used by both the API and the page.
+- `packages/eslint-plugin`: the repo's own lint rules.
 - `docs/adr/`: architecture decision records.
 
 ## Commands
@@ -22,13 +23,13 @@ A map of European football fixtures for planning trips. One Cloudflare Worker se
 
 ## Rules
 
-- No comments in code. Code should read clearly on its own through naming and small functions. Any design decision that needs explaining gets an ADR in `docs/adr/` (template in `docs/adr/README.md`, added to its index), not a comment.
+- No comments in code; lint enforces it (`packages/eslint-plugin`). Code reads clearly through naming and small functions, and any design decision that needs explaining gets an ADR in `docs/adr/` (template in `docs/adr/README.md`, added to its index).
 - Before any change, call the `start-work` skill.
-- Before pushing a pull request, fetch and rebase on `origin/main`, then rerun the checks if anything came in.
+- A pull request is complete before it's opened: its ADRs, the status line and step entry in `docs/PLAN.md`, and the checks under Commands all green. Then fetch and rebase on `origin/main`, rerunning the checks if anything came in. Push to an open pull request only for review changes.
 - Merging to `main` deploys: CI applies D1 migrations to production, then runs `wrangler deploy`. Migrations must be safe to apply before the new code is live.
 - Visitor requests never call ESPN or Photon. Only the cron fetches upstream data.
 - Test-driven development for code changes: follow "Tests come first" in `CODING_STANDARDS.md`, which review checks, including recording each red run for the PR description.
-- Tests run inside workerd against local D1 and R2 (`@cloudflare/vitest-plugin`). Ingestion tests use the fake upstream in `apps/api/test/ingest/fake-upstream.ts` and saved ESPN responses, never the real APIs.
+- Tests run inside workerd against local D1 and R2 (`@cloudflare/vitest-plugin`), with ESPN and Photon faked as "Tests never call the real APIs" in `CODING_STANDARDS.md` describes.
 
 ## Cloudflare Free plan limits
 
