@@ -9,17 +9,31 @@ export function ResizeHandle({ width, max, resize }: SidebarWidth) {
     const startDrag = (start: PointerEvent<HTMLDivElement>) => {
         start.preventDefault();
         const handle = start.currentTarget;
-        handle.setPointerCapture(start.pointerId);
+        const { pointerId } = start;
+        const page = document.documentElement;
         const offset = start.clientX - width;
-        const move = (e: globalThis.PointerEvent) => resize(e.clientX - offset);
-        const stop = () => {
-            handle.removeEventListener('pointermove', move);
-            handle.removeEventListener('pointerup', stop);
-            handle.removeEventListener('pointercancel', stop);
+
+        const end = () => {
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', end);
+            window.removeEventListener('pointercancel', end);
+            handle.removeEventListener('lostpointercapture', end);
+            if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+            page.style.removeProperty('cursor');
+            page.style.removeProperty('user-select');
         };
-        handle.addEventListener('pointermove', move);
-        handle.addEventListener('pointerup', stop);
-        handle.addEventListener('pointercancel', stop);
+        const move = (e: globalThis.PointerEvent) => {
+            if (e.buttons === 0) end();
+            else resize(e.clientX - offset);
+        };
+
+        handle.setPointerCapture(pointerId);
+        page.style.cursor = 'col-resize';
+        page.style.userSelect = 'none';
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', end);
+        window.addEventListener('pointercancel', end);
+        handle.addEventListener('lostpointercapture', end);
     };
 
     const nudge = (e: KeyboardEvent<HTMLDivElement>) => {

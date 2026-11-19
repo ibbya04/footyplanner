@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) in review.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) merged in [PR #9](https://github.com/ibbya04/footyplanner/pull/9).
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 

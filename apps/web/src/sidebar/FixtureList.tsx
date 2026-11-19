@@ -11,6 +11,7 @@ interface Props {
 }
 
 function emptyMessage(filters: UrlFilters): string {
+    if (filters.comps !== 'all' && !filters.comps.length) return 'Pick at least one competition above.';
     if (filters.search.trim()) return `Nothing matches “${filters.search.trim()}”.`;
     if (filters.inView) return 'No fixtures in the visible map area. Zoom out or untick “Only fixtures in map view”.';
     return 'No fixtures in these dates for the selected competitions.';

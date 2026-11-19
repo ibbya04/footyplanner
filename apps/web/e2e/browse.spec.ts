@@ -185,6 +185,25 @@ test('competition shortcuts: Big 5 + UEFA, All, and choosing everything again me
     await expect(page).toHaveURL(/\/next\/$/);
 });
 
+test('None clears every competition, and you can build up from there', async ({ page }) => {
+    const items = fixtureList(page).getByRole('listitem');
+    const picker = page.getByRole('button', { name: /^Competitions/ });
+    await picker.click();
+
+    await page.getByRole('button', { name: 'None', exact: true }).click();
+    await expect(items).toHaveCount(0);
+    await expect(fixtureList(page)).toContainText('Pick at least one competition above.');
+    await expect(picker).toContainText('None');
+    await expect(page).toHaveURL(/[?&]comps=$/);
+
+    await page.getByRole('button', { name: 'Premier League', exact: true }).click();
+    await expect(items).toHaveCount(1);
+
+    await page.getByRole('button', { name: 'Premier League', exact: true }).click();
+    await expect(items).toHaveCount(0);
+    await expect(picker).toContainText('None');
+});
+
 test('"Data updated" says just now, hours or days as the last run gets older', async ({ page }) => {
     const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
     for (const [age, label] of [
@@ -306,6 +325,47 @@ test.describe('resizing the sidebar', () => {
         await page.mouse.move(box.x + 200, box.y + 200, { steps: 5 });
         await page.mouse.up();
         expect(await sidebarWidth(page)).toBe(400);
+    });
+
+    test('a drag ends when the button turns out to be released, even if the release was missed', async ({ page }) => {
+        const box = await handle(page).boundingBox();
+        if (!box) throw new Error('no resize handle');
+        await page.mouse.move(box.x + box.width / 2, box.y + 200);
+        await page.mouse.down();
+        await handle(page).dispatchEvent('pointermove', {
+            pointerId: 1,
+            buttons: 0,
+            clientX: 700,
+            clientY: box.y + 200,
+        });
+        expect(await sidebarWidth(page)).toBe(400);
+        await expect(page.locator('html')).not.toHaveCSS('cursor', 'col-resize');
+    });
+
+    test('a drag ends when the handle loses the pointer', async ({ page }) => {
+        const box = await handle(page).boundingBox();
+        if (!box) throw new Error('no resize handle');
+        await page.mouse.move(box.x + box.width / 2, box.y + 200);
+        await page.mouse.down();
+        await handle(page).dispatchEvent('lostpointercapture', { pointerId: 1 });
+        await handle(page).dispatchEvent('pointermove', {
+            pointerId: 1,
+            buttons: 1,
+            clientX: 700,
+            clientY: box.y + 200,
+        });
+        expect(await sidebarWidth(page)).toBe(400);
+    });
+
+    test('the page shows the resize cursor only while dragging', async ({ page }) => {
+        const box = await handle(page).boundingBox();
+        if (!box) throw new Error('no resize handle');
+        await page.mouse.move(box.x + box.width / 2, box.y + 200);
+        await page.mouse.down();
+        await expect(page.locator('html')).toHaveCSS('cursor', 'col-resize');
+        await page.mouse.move(1250, box.y + 200, { steps: 5 });
+        await page.mouse.up();
+        await expect(page.locator('html')).not.toHaveCSS('cursor', 'col-resize');
     });
 });
 

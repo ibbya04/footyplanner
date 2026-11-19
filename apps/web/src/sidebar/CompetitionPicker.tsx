@@ -24,9 +24,9 @@ export function CompetitionPicker({ competitions, chosen, onChange }: Props) {
     const [open, setOpen] = useState(false);
     const all = competitions.map(c => c.slug);
     const chosenSlugs = new Set(chosen === 'all' ? all : chosen);
-    const summary = chosen === 'all' ? 'All' : `${chosenSlugs.size} of ${all.length}`;
+    const summary = chosen === 'all' ? 'All' : chosenSlugs.size ? `${chosenSlugs.size} of ${all.length}` : 'None';
 
-    const choose = (slugs: string[]) => onChange(slugs.length === all.length || !slugs.length ? 'all' : slugs);
+    const choose = (slugs: string[]) => onChange(slugs.length === all.length ? 'all' : slugs);
     const toggle = (slug: string) => choose(all.filter(s => (s === slug ? !chosenSlugs.has(s) : chosenSlugs.has(s))));
 
     return (
@@ -46,6 +46,9 @@ export function CompetitionPicker({ competitions, chosen, onChange }: Props) {
                             onClick={() => choose(competitions.filter(c => c.featured).map(c => c.slug))}
                         >
                             Big 5 + UEFA
+                        </button>
+                        <button type="button" className={styles.chip} onClick={() => onChange([])}>
+                            None
                         </button>
                     </div>
                     {groupsOf(competitions).map(group => (

@@ -38,6 +38,15 @@ describe('URL filters', () => {
         expect(readFilters(params, context)).toEqual({ ...filters, comps: ['eng.1', 'esp.1'] });
     });
 
+    it('writes no competitions as an empty comps, and reads it back as none', () => {
+        const none = { ...read(''), comps: [] };
+
+        const params = writeFilters(none, context);
+
+        expect(params.toString()).toBe('comps=');
+        expect(readFilters(params, context).comps).toEqual([]);
+    });
+
     describe('falls back when the URL is broken or edited by hand', () => {
         const nextWeek = { from: '2026-11-19', to: '2026-11-25' };
 

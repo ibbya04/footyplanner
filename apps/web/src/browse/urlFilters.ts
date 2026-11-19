@@ -34,6 +34,7 @@ function readRange(params: URLSearchParams, today: string): DateRange {
 }
 
 function readComps(params: URLSearchParams, known: string[]): UrlFilters['comps'] {
+    if (params.get('comps') === '') return [];
     const comps = [...new Set((params.get('comps') ?? '').split(','))].filter(slug => known.includes(slug));
     return comps.length && comps.length < new Set(known).size ? comps.sort() : 'all';
 }
