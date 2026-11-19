@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$files" ] && exit 0
+
+echo "$files" | xargs pnpm exec prettier --check --ignore-unknown
+
+code=$(echo "$files" | grep -E '\.(ts|tsx|js|mjs|cjs)$' || true)
+[ -z "$code" ] && exit 0
+echo "$code" | xargs pnpm exec eslint --no-warn-ignored

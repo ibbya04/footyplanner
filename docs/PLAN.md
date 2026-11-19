@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) in progress. Decisions are recorded in [`docs/adr/`](adr/) as each step lands.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7).
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 
@@ -109,7 +109,7 @@ Removed: `/api/venue` (coordinates are already included in each fixture) and, on
 
 ## Steps
 
-Each step is its own branch and pull request, done in a git worktree. The site keeps working after every step. Tests and an ADR are written alongside each step.
+Each step is its own branch and pull request; call the `start-work` skill to begin one. The site keeps working after every step.
 
 1. **Move to Workers (1a)**
     - pnpm workspaces (`apps/web`, `apps/api`, `packages/shared`), TypeScript, ESLint, Prettier, `wrangler.jsonc`.
