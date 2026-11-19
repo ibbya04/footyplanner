@@ -19,7 +19,7 @@ const DARK_LABELS = `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}
 interface PopupProps {
     fixture: FixtureView;
     saved: boolean;
-    onToggle: (id: string) => void;
+    onToggle?: (id: string) => void;
 }
 
 function FixturePopup({ fixture, saved, onToggle }: PopupProps) {
@@ -45,7 +45,9 @@ function FixturePopup({ fixture, saved, onToggle }: PopupProps) {
                     </div>
                 )}
                 <FixtureLinks fixture={fixture} className={styles.popActions}>
-                    <StarButton title={fixture.title} saved={saved} onToggle={() => onToggle(fixture.id)} />
+                    {onToggle && (
+                        <StarButton title={fixture.title} saved={saved} onToggle={() => onToggle(fixture.id)} />
+                    )}
                 </FixtureLinks>
             </div>
         </Popup>
@@ -133,7 +135,7 @@ interface Props {
     near: Near | null;
     onAreaChange: (area: Area) => void;
     savedIds: Set<string>;
-    onToggle: (id: string) => void;
+    onToggle?: (id: string) => void;
     route: FixtureView[] | null;
 }
 

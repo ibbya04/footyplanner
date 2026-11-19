@@ -1,19 +1,19 @@
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
 import type { FixtureView } from '../browse/viewFixtures';
-import { dateLabel } from '../browse/timeZones';
 import { downloadIcs } from '../shortlist/download';
-import { legs } from '../shortlist/itinerary';
-import { FixtureCard } from './FixtureCard';
-import { FixtureLinks } from './FixtureLinks';
+import type { SavedTrip } from '../trips/useSavedTrip';
+import { Itinerary } from './Itinerary';
 import styles from './Sidebar.module.css';
+import { TripBox } from './TripBox';
 
 interface Props {
     fixtures: FixtureView[];
+    trip: SavedTrip;
     onToggle: (id: string) => void;
     onClear: () => void;
 }
 
-function ClearButton({ onClear }: { onClear: () => void }) {
+function ClearButton({ linked, onClear }: { linked: boolean; onClear: () => void }) {
     const [confirming, setConfirming] = useState(false);
     if (!confirming) {
         return (
@@ -24,6 +24,11 @@ function ClearButton({ onClear }: { onClear: () => void }) {
     }
     return (
         <span className={styles.confirm}>
+            {linked && (
+                <span className={styles.confirmText}>
+                    Clear the shortlist and start a new trip? Your saved trip stays as it was.
+                </span>
+            )}
             <button type="button" className={styles.chip} onClick={onClear}>
                 Remove all
             </button>
@@ -34,8 +39,11 @@ function ClearButton({ onClear }: { onClear: () => void }) {
     );
 }
 
-export function ShortlistPanel({ fixtures, onToggle, onClear }: Props) {
-    const between = legs(fixtures);
+export function ShortlistPanel({ fixtures, trip, onToggle, onClear }: Props) {
+    const clear = () => {
+        trip.forget();
+        onClear();
+    };
     return (
         <section className={styles.list} aria-label="Shortlist">
             {!fixtures.length ? (
@@ -47,6 +55,7 @@ export function ShortlistPanel({ fixtures, onToggle, onClear }: Props) {
                 </p>
             ) : (
                 <>
+                    <TripBox trip={trip} />
                     <div className={styles.shortlistActions}>
                         <button
                             type="button"
@@ -55,34 +64,9 @@ export function ShortlistPanel({ fixtures, onToggle, onClear }: Props) {
                         >
                             Add all to calendar
                         </button>
-                        <ClearButton onClear={onClear} />
+                        <ClearButton linked={!!trip.link} onClear={clear} />
                     </div>
-                    <ol className={styles.cards}>
-                        {fixtures.map((fixture, i) => {
-                            const leg = i > 0 ? between[i - 1] : null;
-                            const newDay = fixture.day !== fixtures[i - 1]?.day;
-                            return (
-                                <Fragment key={fixture.id}>
-                                    {leg && (
-                                        <li
-                                            role="presentation"
-                                            className={leg.warning ? styles.legWarning : styles.leg}
-                                        >
-                                            {leg.warning ? `⚠ ${leg.text}` : leg.text}
-                                        </li>
-                                    )}
-                                    {newDay && (
-                                        <li role="presentation">
-                                            <h3 className={styles.dayHead}>{dateLabel(fixture.day)}</h3>
-                                        </li>
-                                    )}
-                                    <FixtureCard fixture={fixture} saved onToggle={onToggle}>
-                                        <FixtureLinks fixture={fixture} className={styles.cardLinks} />
-                                    </FixtureCard>
-                                </Fragment>
-                            );
-                        })}
-                    </ol>
+                    <Itinerary fixtures={fixtures} onToggle={onToggle} />
                 </>
             )}
         </section>

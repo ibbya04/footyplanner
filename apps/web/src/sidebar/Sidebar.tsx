@@ -4,6 +4,7 @@ import type { UpdateFilters } from '../browse/useFilters';
 import type { UrlFilters } from '../browse/urlFilters';
 import type { FixturesView, FixtureView } from '../browse/viewFixtures';
 import type { Shortlist } from '../shortlist/useShortlist';
+import type { SavedTrip } from '../trips/useSavedTrip';
 import { CompetitionPicker } from './CompetitionPicker';
 import { DataUpdated } from './DataUpdated';
 import { DateRangePicker } from './DateRangePicker';
@@ -29,6 +30,7 @@ interface Props {
     onTab: (tab: Tab) => void;
     shortlist: Shortlist;
     savedViews: FixtureView[];
+    trip: SavedTrip;
 }
 
 type OpenPopover = 'dates' | 'near' | null;
@@ -71,6 +73,7 @@ export function Sidebar({
     onTab,
     shortlist,
     savedViews,
+    trip,
 }: Props) {
     const [open, setOpen] = useState<OpenPopover>(null);
     const toggle = (name: Exclude<OpenPopover, null>) => (isOpen: boolean) =>
@@ -106,7 +109,12 @@ export function Sidebar({
             </div>
             <Tabs tab={tab} onTab={onTab} saved={shortlist.saved.length} />
             {tab === 'shortlist' ? (
-                <ShortlistPanel fixtures={savedViews} onToggle={shortlist.toggle} onClear={shortlist.clear} />
+                <ShortlistPanel
+                    fixtures={savedViews}
+                    trip={trip}
+                    onToggle={shortlist.toggle}
+                    onClear={shortlist.clear}
+                />
             ) : (
                 <>
                     <CompetitionPicker
