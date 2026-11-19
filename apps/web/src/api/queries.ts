@@ -13,6 +13,14 @@ export function useCompetitions() {
     });
 }
 
+export function useStatus() {
+    return useQuery({
+        queryKey: ['status'],
+        queryFn: () => parseResponse(client.api.status.$get()),
+        refetchInterval: MINUTE,
+    });
+}
+
 export function useFixtures(range: DateRange, comps: string[]) {
     return useQuery({
         queryKey: ['fixtures', range.from, range.to, comps],

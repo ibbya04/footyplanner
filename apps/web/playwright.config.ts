@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 8788;
+const PORT = Number(process.env.E2E_PORT ?? 8788);
 const STATE = '--persist-to .wrangler/e2e';
 
 export default defineConfig({
@@ -18,7 +18,7 @@ export default defineConfig({
             `npx wrangler dev --port ${PORT} ${STATE}`,
         ].join(' && '),
         url: `http://localhost:${PORT}/api/competitions`,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: false,
         timeout: 120_000,
     },
 });

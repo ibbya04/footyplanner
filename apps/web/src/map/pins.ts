@@ -1,4 +1,5 @@
-import type { Competition, Fixture } from '@footyplanner/shared';
+import type { Competition } from '@footyplanner/shared';
+import type { FixtureView } from '../browse/viewFixtures';
 import L from 'leaflet';
 import styles from './FixtureMap.module.css';
 
@@ -18,7 +19,7 @@ function badge(competition: Competition): HTMLElement {
     return el;
 }
 
-export function pinIcon(fixture: Fixture, competition: Competition): L.DivIcon {
+export function pinIcon(fixture: FixtureView, competition: Competition): L.DivIcon {
     const el = badge(competition);
     el.classList.add(styles.pin ?? '');
     if (fixture.status.state === 'in') el.classList.add(styles.live ?? '');
