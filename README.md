@@ -99,7 +99,7 @@ After changing `src/db/schema.ts`, run `pnpm db:generate` to write a migration, 
 
 ## Deploying (Cloudflare)
 
-GitHub Actions (`.github/workflows/ci.yml`) checks formatting, lint, types, tests and the frontend build on every pull request and push, and runs the Playwright tests in a separate job. Pull requests also upload a preview version (`pr-<number>-footyplanner.<account>.workers.dev`) and comment the link. Pushes to `main` apply D1 migrations, then deploy with `wrangler deploy`. Migrations have to stay backwards compatible (add columns and tables, don't rename or drop), because the previous version keeps serving until the deploy finishes, and preview versions share the production database.
+GitHub Actions (`.github/workflows/ci.yml`) checks formatting, lint, types, tests and the frontend build on every pull request and push, and runs the Playwright tests in a separate job. Pull requests also upload a preview version (`pr-<number>-footyplanner.<account>.workers.dev`) and comment a link to the React app at `/next/` on it. Pushes to `main` apply D1 migrations, then deploy with `wrangler deploy`. Migrations have to stay backwards compatible (add columns and tables, don't rename or drop), because the previous version keeps serving until the deploy finishes, and preview versions share the production database.
 
 The deploy jobs need two repository secrets:
 
