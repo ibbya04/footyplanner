@@ -1,15 +1,15 @@
 # footyplanner
 
-A single-page map of the football matches on across Europe for a set of dates. You can use it to see which games you could get to while travelling.
+Going on holiday somewhere in Europe and want to catch a footy game whilst you're there? footyplanner is a way to view all football matches on across Europe for a set of dates. 
 
-It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 database every minute, locates stadiums on OpenStreetMap and copies crests into R2; the API serves from D1 and is cached at Cloudflare's edge. No API keys, and it fits Cloudflare's Free plan. It was rebuilt from a single HTML page one step at a time: see [docs/PLAN.md](docs/PLAN.md) and the decision records in [docs/adr/](docs/adr/).
+It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 SQLite database every minute, locates stadiums on OpenStreetMap and copies static resources into R2; the API serves from D1 and is cached at Cloudflare's edge. No API keys, and it fits Cloudflare's Free plan. It was rebuilt from a single HTML page one step at a time: see [docs/PLAN.md](docs/PLAN.md) and the decision records in [docs/adr/](docs/adr/).
 
 ## How it works
 
-- **Fixtures** come from ESPN's public scoreboard API, an unofficial endpoint that needs no key but could change without notice. Only the cron calls it (see [Ingestion](#ingestion)); the page never does. The page asks the Worker for every fixture in the chosen dates with one `/api/fixtures` request, filters competitions and places in the browser, and refreshes it every 2 minutes so live scores update.
-- **Venue locations:** ESPN gives the venue name, city and country, but no coordinates. The cron looks each new venue up on [Photon](https://photon.komoot.io) (OpenStreetMap): the city first, then the nearest stadium within 40 km. A venue found only at city level has a dashed pin and "Location approximate". Hand-checked locations in `venue_overrides` always win.
-- **Kick-off times** use the venue's time zone, worked out from its country, with your own time shown next to it. The view options menu (top right of the panel) switches between venue time and your own.
-- **Crests** are copied from ESPN into R2 by the cron and served from `/img/...`, so the page never loads images from ESPN.
+- **Fixtures** come from ESPN's public scoreboard API. Only the cron job calls it (see [Ingestion](#ingestion)); the page never does. The page asks the Worker for every fixture in the chosen dates with one `/api/fixtures` request which is then fetched from the databases, then filters by competition or location in the browser. Live matches are refreshed every 2 minutes with the latest score.
+- **Venue locations:** ESPN gives the venue name, city and country, but no coordinates. The cron looks each new venue up on [Photon](https://photon.komoot.io) (OpenStreetMap): the city first, then the nearest stadium within 40 km. A venue which fails to be found, is located at the centre of the city and displays "Location is approximate".
+- **Kick-off times** use the venue's time zone, worked out from its country, with your own local time shown next to it. The view options menu (top right of the panel) switches between venue time and your own.
+- **Club/Competition Badges** are copied from ESPN into R2 by the cron and served from `/img/...`, so the page never needs to fetch images from ESPN whilst loading the page.
 - **Map tiles** come from Esri basemaps, which need no key.
 
 ## Architecture
@@ -47,14 +47,17 @@ One Worker serves the page, the API and the trip feeds, and runs the cron ([ADR 
 
 ## Ingestion
 
-A Cron Trigger runs the Worker every minute (`apps/api/src/ingest/run.ts`). The Workers Free plan gives each run 10 ms of CPU and 50 subrequests (fetches, D1 queries and R2 calls all count), so each run does a little:
+A Cron Trigger runs the Worker every minute. Cloudflare Workers Free plan gives each run 10 ms of CPU time, so the work is distributed into many smaller chunks to stay within the Free plan limit.:
 
-- **Sweep:** claims the next due league-months from `ingest_queue` (1 per run, `INGEST_MONTHS_PER_RUN`) and fetches each from ESPN with `scoreboard?dates=YYYYMM`, one call per month. Only fixtures that changed are written. Moved kick-offs, confirmed times and postponements are logged in `fixture_changes`. Fixtures ESPN stops listing are marked removed. Near months are re-fetched every few hours, finished months weekly.
-- **Live:** on even minutes, competitions with a match in the last 3 hours or the next 10 minutes get today re-fetched instead, so scores are at most about 2 minutes old.
-- **Venues:** one new stadium per run is located on [Photon](https://photon.komoot.io) (OpenStreetMap): the city first, then the nearest stadium within 40 km. `venue_overrides` holds hand-checked locations that always win.
-- **Images:** three crests or league logos per run are copied from ESPN into R2 and served from `/img/...`.
+Each Cron run can be either;
+- **Sweep:** Claims the next league-month (a single month for a single competition) from the `ingest_queue` (a to-do list of all the competitions and months which need fetching) and fetches all the fixtures for that competition from ESPN. Only fixtures that changed are written. Moved kick-offs, confirmed times and postponements are logged in `fixture_changes`. . Depending on how close the month is, the fixtures are re-fetched every few hours or daily.
+- **Live:** on even minutes and if a competition has a live match, it's scores are fetched, so scores are at most about 2 minutes old. If no matches are being played, there is no need to fetch the score, therefore no 'live' run.
 
-Every run is logged in `ingest_runs`, and `/api/status` summarises freshness per competition. ESPN's scoreboard API is unofficial and undocumented; if it changes, `/api/status` shows the errors.
+**Fixtures** fetched from ESPN return the stadium name and location, which are then geolocated using [Photon](https://photon.komoot.io) (OpenStreetMap) and it's coordinates inserted into the D1 database. At the end of every cron run, if there are stadiums which don't currently have any coordinates the cron run will resolve a single stadiums location.  
+
+Similarly, if a **team/competition badge** isn't currently saved in the R2 database, at the end of every cron run it will copy at most 3 badges into R2. These badges (static files) can then be served from /img/*.
+
+Every run is logged in `ingest_runs`, and `/api/status` summarises freshness per competition.
 
 ## Competitions and venues
 
@@ -129,16 +132,5 @@ The deploy jobs need two repository secrets:
 To deploy by hand: `pnpm exec wrangler login` once, then `pnpm deploy`.
 
 Because previews share the production database, a pull request that adds a migration can't use the new tables on its preview until it merges, unless the migration is applied first with `pnpm --filter @footyplanner/api db:migrate:remote`.
-
-### Your own copy
-
-To run it on your own Cloudflare account (the Free plan is enough), from `apps/api` after `pnpm exec wrangler login`:
-
-```
-pnpm exec wrangler d1 create footyplanner              # put the database_id it prints into wrangler.jsonc
-pnpm exec wrangler r2 bucket create footyplanner-images
-pnpm db:migrate:remote                                 # tables, competitions and venues
-cd ../.. && pnpm deploy
-```
 
 The cron starts on its own and fills the fixtures at one league-month a minute, about six hours for the seeded competitions; `/api/status` shows how far it has got. The rate-limit `namespace_id`s in `wrangler.jsonc` are just numbers you choose and need nothing created.
