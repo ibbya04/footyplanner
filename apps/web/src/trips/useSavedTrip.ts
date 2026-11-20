@@ -6,6 +6,7 @@ import { forgetTripLink, pendingSave, readTripLink, type TripLink, writeTripLink
 
 const SAVE_DELAY_MS = 1000;
 const RETRY_DELAY_MS = 5000;
+const SAVE_FAILED = "Couldn't save the trip. Try again.";
 
 export type SaveStatus = 'saving' | 'saved' | 'retrying';
 
@@ -67,7 +68,7 @@ export function useSavedTrip(saved: Fixture[]): SavedTrip {
             .then(created =>
                 remember({ id: created.id, editToken: created.editToken, name: tripName, savedIds: fixtureIds }),
             )
-            .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Saving failed'))
+            .catch(() => setError(SAVE_FAILED))
             .finally(() => setCreating(false));
     }, [creating, fixtureIds, remember, tripName]);
 

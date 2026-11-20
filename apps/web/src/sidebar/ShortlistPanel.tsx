@@ -50,8 +50,7 @@ export function ShortlistPanel({ fixtures, trip, onToggle, onClear }: Props) {
                 <p className={styles.empty}>
                     <strong>Your shortlist is empty</strong>
                     <br />
-                    Tap ☆ on any fixture to save it here for an itinerary with travel times, clash warnings and a
-                    calendar export.
+                    Tap ☆ on any fixture to save it here, and see your own custom itinerary
                 </p>
             ) : (
                 <>

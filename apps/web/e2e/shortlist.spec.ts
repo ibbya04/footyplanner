@@ -60,5 +60,8 @@ test('removing fixtures and clearing the shortlist', async ({ page }) => {
     await shortlist(page).getByRole('button', { name: 'Clear' }).click();
     await shortlist(page).getByRole('button', { name: 'Remove all' }).click();
     await expect(shortlist(page)).toContainText('Your shortlist is empty');
+    await expect(shortlist(page)).toContainText(
+        'Tap ☆ on any fixture to save it here, and see your own custom itinerary',
+    );
     await expect(shortlistTab(page)).not.toContainText(/\d/);
 });

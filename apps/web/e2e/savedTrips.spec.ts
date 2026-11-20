@@ -49,6 +49,20 @@ test('saving the shortlist as a trip gives a link to share, an edit link and a c
     await expect(savedTrip(page).getByRole('textbox', { name: 'Link to share' })).toHaveValue(links.page);
 });
 
+test('a trip that fails to save says so and can be saved again', async ({ page }) => {
+    await page.route('**/api/trips', route => route.fulfill({ status: 500 }), { times: 1 });
+    await page.goto('/');
+    await save(page, 'Liverpool v Arsenal');
+    await shortlistTab(page).click();
+
+    await savedTrip(page).getByRole('button', { name: 'Save trip' }).click();
+    await expect(savedTrip(page)).toContainText("Couldn't save the trip. Try again.");
+    await expect(savedTrip(page)).not.toContainText('500');
+
+    await savedTrip(page).getByRole('button', { name: 'Save trip' }).click();
+    await expect(savedTrip(page).getByRole('textbox', { name: 'Link to share' })).toHaveValue(/\/t\//);
+});
+
 test('changes to a saved shortlist are saved to the trip', async ({ page, request }) => {
     const { id } = await saveTrip(page, ['Liverpool v Arsenal']);
 
