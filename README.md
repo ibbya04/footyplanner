@@ -19,8 +19,8 @@ It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 dat
 - **Shortlist:** tap ☆ on any match or map popup.
     - The Shortlist tab lists your picks as a day-by-day itinerary with travel between games. It warns about same-time kick-offs, overlaps, and trips you can't make between the final whistle and the next kick-off. The route is drawn on the map.
     - "Add all to calendar" downloads an `.ics` file. Matches without a confirmed time become all-day events marked "time TBC".
-    - "Copy share link" puts your dates, competitions, place and shortlist in the link.
-    - Saved matches keep updating. If a kick-off moves, or a TBC time gets confirmed, the shortlist flags it.
+    - Saved matches keep updating with whatever the page loads, so moved kick-offs and confirmed times show.
+    - "Save trip" saves the shortlist as a trip with a link to share, a private edit link for another browser, and a calendar feed to subscribe to. After that, changes to the shortlist are saved to the trip as you make them. Anyone with the link sees the trip read-only and can copy it to their own shortlist.
 - **Unconfirmed kick-offs:** when a time is still TBC, the page shows when that league usually confirms times (for example, the Premier League about 5–6 weeks ahead and La Liga only 1–3 weeks ahead) and the expected date. It also notes that the match can move to another day of that weekend for TV. These are rules of thumb, not guarantees.
 
 ## Ingestion

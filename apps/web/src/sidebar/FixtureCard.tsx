@@ -11,7 +11,7 @@ function scoreText(fixture: FixtureView): string | null {
 interface Props {
     fixture: FixtureView;
     saved: boolean;
-    onToggle: (id: string) => void;
+    onToggle?: (id: string) => void;
     children?: ReactNode;
 }
 
@@ -28,7 +28,7 @@ export function FixtureCard({ fixture, saved, onToggle, children }: Props) {
                 {fixture.status.state === 'in' && (
                     <span className={styles.live}>{fixture.status.detail ?? 'Live'}</span>
                 )}
-                <StarButton title={fixture.title} saved={saved} onToggle={() => onToggle(fixture.id)} />
+                {onToggle && <StarButton title={fixture.title} saved={saved} onToggle={() => onToggle(fixture.id)} />}
             </div>
             <div className={styles.teams}>
                 {fixture.title}

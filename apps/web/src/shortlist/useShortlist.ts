@@ -1,11 +1,7 @@
 import type { Fixture } from '@footyplanner/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { browserStorage } from '../browserStorage';
 import { readShortlist, refreshSaved, toggleSaved, writeShortlist } from './store';
-
-const browserStorage = {
-    getItem: (key: string) => window.localStorage.getItem(key),
-    setItem: (key: string, value: string) => window.localStorage.setItem(key, value),
-};
 
 export interface Shortlist {
     saved: Fixture[];
