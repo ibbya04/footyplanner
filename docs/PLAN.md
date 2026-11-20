@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) merged in [PR #9](https://github.com/ibbya04/footyplanner/pull/9); 3c (near a place) merged in [PR #12](https://github.com/ibbya04/footyplanner/pull/12); 3d (shortlist) merged in [PR #13](https://github.com/ibbya04/footyplanner/pull/13); 3e (cutover) merged in [PR #14](https://github.com/ibbya04/footyplanner/pull/14). Step 4 is split into 4a and 4b; 4a (trips API and feed) in review in [PR #15](https://github.com/ibbya04/footyplanner/pull/15), 4b (trip page) in review on top of it.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) merged in [PR #9](https://github.com/ibbya04/footyplanner/pull/9); 3c (near a place) merged in [PR #12](https://github.com/ibbya04/footyplanner/pull/12); 3d (shortlist) merged in [PR #13](https://github.com/ibbya04/footyplanner/pull/13); 3e (cutover) merged in [PR #14](https://github.com/ibbya04/footyplanner/pull/14). Step 4 is split into 4a and 4b; 4a (trips API and feed) merged in [PR #15](https://github.com/ibbya04/footyplanner/pull/15) and 4b (trip page) in [PR #16](https://github.com/ibbya04/footyplanner/pull/16). Step 5's README and ADRs are done (pushed to `main` 2026-11-20); the blog post is left for later.
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 
@@ -134,9 +134,9 @@ Each step is its own branch and pull request; call the `start-work` skill to beg
     - **4a. API and feed:** `trips` table (fixture ids, optional name, edit token hash), `POST`/`GET`/`PUT /api/trips` with its own creation rate limit, `/t/{id}.ics` feed (ICS code moved into `packages/shared`), `/t/*` run by the Worker so `/t/{id}` serves the app only for trips that exist.
     - **4b. Page:** "Save trip" from the shortlist, autosave to the linked trip (`fp:trip`), public and edit links (`/t/{id}#edit=…`), the read-only `/t/{id}` view with "Copy to my shortlist", calendar subscribe link.
 5. **Docs**
-    - README with the Mermaid diagram, setup and deploy instructions.
+    - README with the Mermaid diagram, setup and deploy instructions. (Done 2026-11-20: "How it works" describes the Worker rather than the legacy page, plus an Architecture section and setup for your own copy.)
     - ADRs in `docs/adr/`: 0001–0011 cover steps 1 and 2 (one Worker, D1, cron-only ingestion, Free-plan batching and more). 0012–0017 cover step 3's frontend and 0018 step 4's saved trips.
-    - Blog post with real numbers: requests per page load before and after, cold-load time, ESPN calls per day, cost.
+    - Blog post with real numbers (not started): requests per page load before and after, cold-load time, ESPN calls per day, cost.
 
 ## Follow-ups
 
