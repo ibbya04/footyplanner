@@ -4,6 +4,10 @@
     "main": "src/index.ts",
     "compatibility_date": "2026-11-01",
     "observability": { "enabled": true },
+    // Served only on the custom domain, so its WAF and rate limiting rules can't be bypassed. Preview URLs stay on for pull requests (ADR 0019).
+    "routes": [{ "pattern": "footyplanner.co.uk", "custom_domain": true }],
+    "workers_dev": false,
+    "preview_urls": true,
     // Static files are served without running the Worker; only /api/*, /img/* and trip pages (/t/*) reach it.
     "assets": {
         "directory": "../web/dist",
