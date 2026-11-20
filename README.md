@@ -1,8 +1,8 @@
 # footyplanner
 
-Going on holiday somewhere in Europe and want to catch a footy game whilst you're there? footyplanner is a way to view all football matches on across Europe for a set of dates. 
+Going on holiday somewhere in Europe and want to catch a footy game whilst you're there? footyplanner is a way to view all football matches on across Europe for a set of dates.
 
-It runs on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 SQLite database every minute, locates stadiums on OpenStreetMap and copies static resources into R2; the API serves from D1 and is cached at Cloudflare's edge. No API keys, and it fits Cloudflare's Free plan. It was rebuilt from a single HTML page one step at a time: see [docs/PLAN.md](docs/PLAN.md) and the decision records in [docs/adr/](docs/adr/).
+It runs at [footyplanner.co.uk](https://footyplanner.co.uk) on Cloudflare Workers. A cron job pulls fixtures from ESPN into a D1 SQLite database every minute, locates stadiums on OpenStreetMap and copies static resources into R2; the API serves from D1 and is cached at Cloudflare's edge. No API keys, and it fits Cloudflare's Free plan. It was rebuilt from a single HTML page one step at a time: see [docs/PLAN.md](docs/PLAN.md) and the decision records in [docs/adr/](docs/adr/).
 
 ## How it works
 
@@ -50,10 +50,11 @@ One Worker serves the page, the API and the trip feeds, and runs the cron ([ADR 
 A Cron Trigger runs the Worker every minute. Cloudflare Workers Free plan gives each run 10 ms of CPU time, so the work is distributed into many smaller chunks to stay within the Free plan limit.:
 
 Each Cron run can be either;
+
 - **Sweep:** Claims the next league-month (a single month for a single competition) from the `ingest_queue` (a to-do list of all the competitions and months which need fetching) and fetches all the fixtures for that competition from ESPN. Only fixtures that changed are written. Moved kick-offs, confirmed times and postponements are logged in `fixture_changes`. . Depending on how close the month is, the fixtures are re-fetched every few hours or daily.
 - **Live:** on even minutes and if a competition has a live match, it's scores are fetched, so scores are at most about 2 minutes old. If no matches are being played, there is no need to fetch the score, therefore no 'live' run.
 
-**Fixtures** fetched from ESPN return the stadium name and location, which are then geolocated using [Photon](https://photon.komoot.io) (OpenStreetMap) and it's coordinates inserted into the D1 database. At the end of every cron run, if there are stadiums which don't currently have any coordinates the cron run will resolve a single stadiums location.  
+**Fixtures** fetched from ESPN return the stadium name and location, which are then geolocated using [Photon](https://photon.komoot.io) (OpenStreetMap) and it's coordinates inserted into the D1 database. At the end of every cron run, if there are stadiums which don't currently have any coordinates the cron run will resolve a single stadiums location.
 
 Similarly, if a **team/competition badge** isn't currently saved in the R2 database, at the end of every cron run it will copy at most 3 badges into R2. These badges (static files) can then be served from /img/*.
 
@@ -127,7 +128,9 @@ GitHub Actions (`.github/workflows/ci.yml`) checks formatting, lint, types, test
 The deploy jobs need two repository secrets:
 
 - `CLOUDFLARE_ACCOUNT_ID`: from the Cloudflare dashboard (Workers & Pages, right-hand side).
-- `CLOUDFLARE_API_TOKEN`: create one with the "Edit Cloudflare Workers" template, and add **D1: Edit** to its permissions for migrations.
+- `CLOUDFLARE_API_TOKEN`: create one with the "Edit Cloudflare Workers" template, and add **D1: Edit** to its permissions for migrations. Its zone resources must include `footyplanner.co.uk`, so the deploy can attach the custom domain.
+
+The Worker is served only on `footyplanner.co.uk` (`routes` in `apps/api/wrangler.jsonc`); `workers.dev` is turned off so the zone's WAF and rate limiting rules can't be bypassed, while preview URLs stay on ([ADR 0019](docs/adr/0019-custom-domain-with-workers-dev-off.md)). To run your own copy, change the route to a domain on your Cloudflare account.
 
 To deploy by hand: `pnpm exec wrangler login` once, then `pnpm deploy`.
 
