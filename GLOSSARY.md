@@ -31,6 +31,27 @@ _Avoid_: Home, location (for the visitor's point)
 A team's or competition's badge image, served from footyplanner's own storage.
 _Avoid_: Logo, badge
 
+## Trips
+
+**Shortlist**:
+The fixtures a visitor has starred, kept in their browser and shown as an itinerary.
+_Avoid_: Favourites, starred list, saved matches
+
+**Trip**:
+A shortlist saved on the server, with a public link anyone can open and a calendar feed.
+_Avoid_: Plan, itinerary (for the saved thing)
+
+**Edit token**:
+The secret that lets whoever saved a trip change it. Only its hash is stored.
+_Avoid_: Password, key
+
+**Edit link**:
+A trip's link with its edit token in the hash fragment, for editing it from another browser.
+
+**Trip feed**:
+A trip's `.ics` calendar that calendar apps subscribe to, following kick-offs as they move.
+_Avoid_: Calendar export (that's the one-off `.ics` download)
+
 ## Ingestion
 
 **Ingestion**:

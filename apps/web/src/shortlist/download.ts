@@ -1,4 +1,4 @@
-import { buildIcs, type CalendarFixture } from './ics';
+import { buildIcs, type CalendarFixture } from '@footyplanner/shared';
 
 export function downloadIcs(fixtures: CalendarFixture[], filename: string): void {
     if (!fixtures.length) return;

@@ -1,6 +1,5 @@
-import type { Competition } from '@footyplanner/shared';
 import { describe, expect, it } from 'vitest';
-import { buildIcs, type CalendarFixture } from './ics';
+import { buildIcs, type CalendarFixture, type Competition } from '../src';
 
 const premierLeague: Competition = {
     slug: 'eng.1',
@@ -111,5 +110,20 @@ describe('buildIcs', () => {
 
         expect(lines(ics).filter(line => line === 'BEGIN:VEVENT')).toHaveLength(2);
         expect(ics).toContain('UID:esp.1-740002@footyplanner');
+    });
+
+    it('names a subscribed calendar and tells calendar apps to check back every hour', () => {
+        const ics = lines(buildIcs([fixture()], now, { name: 'Northern; weekend', refreshHours: 1 }));
+
+        expect(ics.slice(0, 8)).toEqual([
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//footyplanner//EN',
+            'CALSCALE:GREGORIAN',
+            'X-WR-CALNAME:Northern\\; weekend',
+            'NAME:Northern\\; weekend',
+            'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+            'X-PUBLISHED-TTL:PT1H',
+        ]);
     });
 });

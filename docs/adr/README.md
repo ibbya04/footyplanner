@@ -21,6 +21,7 @@ Short records of the decisions that shape footyplanner: the context, what was ch
 | [0015](0015-rough-travel-time-estimates.md)                    | Rough travel-time estimates from straight-line distance | Accepted                              |
 | [0016](0016-shortlist-kept-in-the-browser.md)                  | Shortlist kept in the browser as fixture copies         | Accepted                              |
 | [0017](0017-react-app-replaces-the-legacy-page.md)             | The React app replaces the legacy page at `/`           | Accepted                              |
+| [0018](0018-anonymous-trips-with-edit-tokens.md)               | Anonymous saved trips with edit tokens                  | Accepted                              |
 
 ## Template
 

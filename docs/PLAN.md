@@ -1,6 +1,6 @@
 # footyplanner rebuild plan
 
-Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) merged in [PR #9](https://github.com/ibbya04/footyplanner/pull/9); 3c (near a place) merged in [PR #12](https://github.com/ibbya04/footyplanner/pull/12); 3d (shortlist) merged in [PR #13](https://github.com/ibbya04/footyplanner/pull/13); 3e (cutover) in review.
+Status: agreed 2026-11-18. Step 1 merged in [PR #2](https://github.com/ibbya04/footyplanner/pull/2). Step 2 (data layer) merged in [PR #4](https://github.com/ibbya04/footyplanner/pull/4) and tuned in [PR #5](https://github.com/ibbya04/footyplanner/pull/5). Reviewed against production after step 2 (see [Follow-ups](#follow-ups)). Step 3 is split into 3a–3e; 3a (React skeleton at `/next/`) merged in [PR #7](https://github.com/ibbya04/footyplanner/pull/7); 3b (browse) merged in [PR #9](https://github.com/ibbya04/footyplanner/pull/9); 3c (near a place) merged in [PR #12](https://github.com/ibbya04/footyplanner/pull/12); 3d (shortlist) merged in [PR #13](https://github.com/ibbya04/footyplanner/pull/13); 3e (cutover) merged in [PR #14](https://github.com/ibbya04/footyplanner/pull/14). Step 4 is split into 4a and 4b; 4a (trips API and feed) in review.
 
 Goal: turn footyplanner into a full-stack CV project, with the backend and data pipeline as the headline. Modelled on the shape of [Rate My Uni's architecture](https://tadiwanashedzvoti.com/blogs/rate-my-uni-architecture.html) (separate frontend, API, database and object storage behind one edge, documented with a diagram), but running entirely on Cloudflare.
 
@@ -80,7 +80,7 @@ flowchart LR
 | `GET /api/status`                    | "Data updated 3 min ago" label, health check | Last successful ingest and coverage per competition, recent errors, last cron run                                                                                                                            |
 | `POST /api/trips`                    | Save / share trip                            | Returns public `id` and secret `editToken`. Rate-limited                                                                                                                                                     |
 | `GET /api/trips/{id}`                | Opening `/t/{id}`                            | Trip with current fixture details, so moved kick-offs show                                                                                                                                                   |
-| `PUT /api/trips/{id}`                | Editing a saved trip                         | Needs `editToken` in a header                                                                                                                                                                                |
+| `PUT /api/trips/{id}`                | Editing a saved trip                         | Needs `editToken` as a bearer token                                                                                                                                                                          |
 | `GET /t/{id}.ics`                    | Calendar subscriptions                       | Live feed that updates as kick-offs move or get confirmed                                                                                                                                                    |
 | `/img/...`                           | Crests and logos                             | Static files from R2                                                                                                                                                                                         |
 
@@ -94,7 +94,7 @@ Removed in step 3e: `/api/venue` (coordinates are already included in each fixtu
 - `venue_overrides`: manual corrections, managed through migrations
 - `fixtures`: ESPN id, competition, kick-off, `time_valid`, status, scores, home, away, venue, `updated_at`
 - `fixture_changes`: kick-off moved, time confirmed, status changes (powers the shortlist's "changed" warnings)
-- `trips`: public id, edit token hash, payload, created and updated times
+- `trips`: public id, edit token hash, name, fixture ids, created and updated times
 - `ingest_queue`: league-months still to fetch and when each was last fetched
 - `ingest_runs`: start, end, calls made, rows changed, errors
 
@@ -130,11 +130,12 @@ Each step is its own branch and pull request; call the `start-work` skill to beg
     - **3c. Near a place:** place search, "My location", a radius (25–400 km), distance and travel-time estimates (moved into `packages/shared`, [ADR 0015](adr/0015-rough-travel-time-estimates.md)) and sort by distance, with the place in the URL as the legacy `n=lat,lng,radius,name`. The browser keeps calling Photon for place search; no `/api/places` ([ADR 0014](adr/0014-place-search-calls-photon-from-the-browser.md)). Dates become one button with a range calendar, as in the legacy page, sharing a popover with the place picker.
     - **3d. Shortlist:** shortlist in `localStorage` under its own key as copies of each fixture, refreshed from whatever the page loads (the legacy page's shortlist doesn't carry over), a Shortlist tab with the itinerary, clash warnings and travel between fixtures, route on the map, ICS export (one fixture or all), Google Maps directions links ([ADR 0016](adr/0016-shortlist-kept-in-the-browser.md)).
     - **3e. Cutover:** React moves to `/`. Remove `/api/day`, `/api/venue` and the legacy `index.html`, and point the pull request preview comment in `ci.yml` at `/` instead of `/next/`. Playwright covers the main journeys. Legacy `#d=…` links aren't translated and `/next/` isn't redirected; legacy features still missing are follow-ups ([ADR 0017](adr/0017-react-app-replaces-the-legacy-page.md)).
-4. **Saved trips**
-    - `trips` table, `POST`/`GET`/`PUT /api/trips`, `/t/{id}` page, `/t/{id}.ics` feed (ICS code moved into `packages/shared`).
+4. **Saved trips**, split into two pull requests ([ADR 0018](adr/0018-anonymous-trips-with-edit-tokens.md)).
+    - **4a. API and feed:** `trips` table (fixture ids, optional name, edit token hash), `POST`/`GET`/`PUT /api/trips` with its own creation rate limit, `/t/{id}.ics` feed (ICS code moved into `packages/shared`), `/t/*` run by the Worker so `/t/{id}` serves the app only for trips that exist.
+    - **4b. Page:** "Save trip" from the shortlist, autosave to the linked trip (`fp:trip`), public and edit links (`/t/{id}#edit=…`), the read-only `/t/{id}` view with "Copy to my shortlist", calendar subscribe link.
 5. **Docs**
     - README with the Mermaid diagram, setup and deploy instructions.
-    - ADRs in `docs/adr/`: 0001–0011 cover steps 1 and 2 (one Worker, D1, cron-only ingestion, Free-plan batching and more). 0012 covers step 3's frontend. Still to write: anonymous trips with edit tokens.
+    - ADRs in `docs/adr/`: 0001–0011 cover steps 1 and 2 (one Worker, D1, cron-only ingestion, Free-plan batching and more). 0012–0017 cover step 3's frontend and 0018 step 4's saved trips.
     - Blog post with real numbers: requests per page load before and after, cold-load time, ESPN calls per day, cost.
 
 ## Follow-ups
@@ -151,6 +152,8 @@ Found after step 2 went live, and in step 3e. Not part of a step yet.
 
 - Custom domain on Cloudflare Registrar, firewall (WAF) and rate-limit rules.
 - Accounts (magic link) for "my trips" across devices.
+- "Changed since you saved" warnings on a trip, from `fixture_changes`.
+- Deleting a trip with its edit token.
 - MapLibre GL and vector tiles.
 - Email or Slack alerts when ingestion fails.
 - Remember the last filters (dates, competitions, place) in `localStorage` and restore them on a clean URL, while a link still shows exactly what it says. Supersedes that part of [ADR 0013](adr/0013-browsing-filters-in-the-url-and-the-browser.md).

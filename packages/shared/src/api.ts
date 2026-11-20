@@ -45,6 +45,19 @@ export interface Competition {
     logo: string | null;
 }
 
+export interface TripCreated {
+    id: string;
+    editToken: string;
+}
+
+export interface TripResponse {
+    id: string;
+    name: string | null;
+    fixtures: Fixture[];
+    missing: string[];
+    updatedAt: string;
+}
+
 export interface CompetitionsResponse {
     competitions: Competition[];
 }

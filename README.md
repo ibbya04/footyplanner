@@ -57,11 +57,15 @@ It's a pnpm workspace. Install with `pnpm install` (Node 22+; `corepack enable` 
 
 ## API
 
-The Worker only runs for `/api/*` and `/img/*`; everything else is served straight from the static assets. Responses are cached at Cloudflare's edge (Workers Cache, via `Cloudflare-CDN-Cache-Control`), and requests that miss the cache are rate-limited per IP (120 a minute).
+The Worker only runs for `/api/*`, `/img/*` and `/t/*`; everything else is served straight from the static assets. Responses are cached at Cloudflare's edge (Workers Cache, via `Cloudflare-CDN-Cache-Control`), and requests that miss the cache are rate-limited per IP (120 a minute).
 
 - **`/api/fixtures?from=YYYY-MM-DD&to=YYYY-MM-DD[&comps=eng.1,esp.1,…]`** every fixture in the range (whole UTC days, up to 62) for the listed competitions, or every active one when `comps` is left out, from D1, with teams, crests, score, status and venue coordinates. Cached for 60 s when the range touches today, an hour for future ranges and a day for past ones.
 - **`/api/competitions`** the competitions, their groups and colours, logos and TBC guidance.
 - **`/api/status`** the last cron run and, per competition, how many months have been fetched, when last and whether any are failing.
+- **`POST /api/trips`** saves a trip, `{ name?, fixtureIds }` (1–50 listed fixtures), and returns its public `id` and a secret `editToken`. Limited to 10 a minute per IP.
+- **`GET /api/trips/<id>`** the trip with its fixtures as they are now, and any ESPN no longer lists under `missing`. Never cached.
+- **`PUT /api/trips/<id>`** replaces the trip; needs `Authorization: Bearer <editToken>`.
+- **`/t/<id>.ics`** the trip as a calendar feed to subscribe to, cached for 15 minutes. `/t/<id>` opens the page for a trip that exists.
 - **`/img/teams/<id>.png`, `/img/leagues/<slug>.png`** crests and logos from R2.
 
 Errors and bad requests are sent with `Cache-Control: no-store` so they're never cached. Only the cron calls ESPN and Photon; the page's place search calls Photon from the browser.
