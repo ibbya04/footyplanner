@@ -1,6 +1,7 @@
 import type { UrlFilters } from '../browse/urlFilters';
 import type { FixtureView } from '../browse/viewFixtures';
 import { dateLabel } from '../browse/timeZones';
+import type { Selection } from '../selection';
 import { FixtureCard } from './FixtureCard';
 import styles from './Sidebar.module.css';
 
@@ -10,6 +11,8 @@ interface Props {
     loading: boolean;
     savedIds: Set<string>;
     onToggle: (id: string) => void;
+    selection: Selection | null;
+    onSelect: (id: string) => void;
 }
 
 function emptyMessage(filters: UrlFilters): string {
@@ -32,7 +35,7 @@ function byDay(fixtures: FixtureView[]): [string, FixtureView[]][] {
     return [...groups].map(([day, group]) => [dateLabel(day), group]);
 }
 
-export function FixtureList({ fixtures, filters, loading, savedIds, onToggle }: Props) {
+export function FixtureList({ fixtures, filters, loading, savedIds, onToggle, selection, onSelect }: Props) {
     return (
         <section className={styles.list} aria-label="Fixtures">
             {!fixtures.length && !loading && <p className={styles.empty}>{emptyMessage(filters)}</p>}
@@ -49,6 +52,8 @@ export function FixtureList({ fixtures, filters, loading, savedIds, onToggle }: 
                                 fixture={fixture}
                                 saved={savedIds.has(fixture.id)}
                                 onToggle={onToggle}
+                                selection={selection}
+                                onSelect={onSelect}
                             />
                         ))}
                     </ol>

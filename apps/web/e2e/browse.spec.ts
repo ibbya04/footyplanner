@@ -46,6 +46,7 @@ test('map popups explain TBC kick-offs and flag venues only located to their cit
     await page.locator('.leaflet-marker-pane [title="Telstar v Ajax"] > div').click();
     await expect(page.locator('.leaflet-popup').filter({ hasText: 'Telstar' })).toContainText('Location approximate');
 
+    await page.getByRole('button', { name: 'Fit matches' }).click();
     await page.locator('.leaflet-marker-pane [title="Real Madrid v Barcelona"] > div').click();
     await expect(page.locator('.leaflet-popup').filter({ hasText: 'Real Madrid' })).toContainText(
         'Kick-off time due to be announced any day',

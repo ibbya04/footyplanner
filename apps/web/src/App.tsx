@@ -9,6 +9,7 @@ import { FixtureMap } from './map/FixtureMap';
 import { ResizeHandle } from './sidebar/ResizeHandle';
 import { Sidebar, type Tab } from './sidebar/Sidebar';
 import { useSidebarWidth } from './sidebar/useSidebarWidth';
+import { useSelection } from './selection';
 import { useShortlist } from './shortlist/useShortlist';
 import { EditHandoff } from './trips/EditHandoff';
 import { openRoute, type Route } from './trips/route';
@@ -25,6 +26,7 @@ function Planner({ competitions, initialTab }: { competitions: Competition[]; in
     const [tab, setTab] = useState<Tab>(initialTab);
     const shortlist = useShortlist(fixtures.data?.fixtures);
     const trip = useSavedTrip(shortlist.saved);
+    const [selection, select] = useSelection();
     const view = useMemo(
         () =>
             viewFixtures(
@@ -62,6 +64,8 @@ function Planner({ competitions, initialTab }: { competitions: Competition[]; in
                 shortlist={shortlist}
                 savedViews={savedViews}
                 trip={trip}
+                selection={selection}
+                onSelect={id => select(id, 'list')}
             />
             <ResizeHandle {...sidebar} />
             <div className={styles.mapWrap}>
@@ -73,6 +77,8 @@ function Planner({ competitions, initialTab }: { competitions: Competition[]; in
                     savedIds={shortlist.savedIds}
                     onToggle={shortlist.toggle}
                     route={onShortlist ? savedViews : null}
+                    selection={selection}
+                    onSelect={id => select(id, 'map')}
                 />
             </div>
         </main>

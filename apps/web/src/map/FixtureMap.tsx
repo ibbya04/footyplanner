@@ -1,11 +1,12 @@
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { Competition } from '@footyplanner/shared';
-import { type CSSProperties, useEffect, useState } from 'react';
+import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
 import { Circle, MapContainer, Marker, Polyline, Popup, TileLayer, useMap, ZoomControl } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
 import type { Area, FixtureView, Near } from '../browse/viewFixtures';
+import type { Selection } from '../selection';
 import styles from './FixtureMap.module.css';
 import { FixtureLinks } from '../sidebar/FixtureLinks';
 import { StarButton } from '../sidebar/StarButton';
@@ -108,6 +109,44 @@ function located(fixture: FixtureView): LatLng[] {
     return lat == null || lng == null ? [] : [[lat, lng]];
 }
 
+const CITY_ZOOM = 11;
+
+type Markers = RefObject<Map<string, L.Marker>>;
+
+interface SelectionProps {
+    selection: Selection | null;
+    markers: Markers;
+    cluster: L.MarkerClusterGroup | null;
+}
+
+function remember(markers: Markers, id: string, marker: L.Marker | null) {
+    if (!marker) return;
+    markers.current.set(id, marker);
+    return () => {
+        markers.current.delete(id);
+    };
+}
+
+function FlyToSelection({ selection, markers, cluster }: SelectionProps) {
+    const map = useMap();
+    useEffect(() => {
+        const marker = selection && markers.current.get(selection.id);
+        if (!marker || !cluster) return;
+        const zoom = Math.max(map.getZoom(), CITY_ZOOM);
+        const show = () => {
+            if (map.getZoom() < zoom) return;
+            map.off('moveend', show);
+            cluster.zoomToShowLayer(marker, () => marker.openPopup());
+        };
+        map.on('moveend', show);
+        map.flyTo(marker.getLatLng(), zoom, { duration: 0.8 });
+        return () => {
+            map.off('moveend', show);
+        };
+    }, [map, selection, markers, cluster]);
+    return null;
+}
+
 function fitTo(map: L.Map, points: LatLng[]) {
     if (points.length) map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 11 });
 }
@@ -187,10 +226,24 @@ interface Props {
     savedIds: Set<string>;
     onToggle?: (id: string) => void;
     route: FixtureView[] | null;
+    selection: Selection | null;
+    onSelect: (id: string) => void;
 }
 
-export function FixtureMap({ competitions, fixtures, near, onAreaChange, savedIds, onToggle, route }: Props) {
+export function FixtureMap({
+    competitions,
+    fixtures,
+    near,
+    onAreaChange,
+    savedIds,
+    onToggle,
+    route,
+    selection,
+    onSelect,
+}: Props) {
     const [map, setMap] = useState<L.Map | null>(null);
+    const [cluster, setCluster] = useState<L.MarkerClusterGroup | null>(null);
+    const markers = useRef(new Map<string, L.Marker>());
     const [style, setStyle] = useMapStyle();
     return (
         <>
@@ -208,7 +261,9 @@ export function FixtureMap({ competitions, fixtures, near, onAreaChange, savedId
                 <StyleLayers style={style} />
                 {near && <NearLayer near={near} />}
                 {route && <RouteLayer route={route} />}
+                <FlyToSelection selection={selection} markers={markers} cluster={cluster} />
                 <MarkerClusterGroup
+                    ref={setCluster}
                     maxClusterRadius={45}
                     showCoverageOnHover={false}
                     spiderfyOnMaxZoom
@@ -225,6 +280,8 @@ export function FixtureMap({ competitions, fixtures, near, onAreaChange, savedId
                                 position={[lat, lng]}
                                 icon={pinIcon(fixture, saved)}
                                 title={fixture.title}
+                                ref={marker => remember(markers, fixture.id, marker)}
+                                eventHandlers={{ click: () => onSelect(fixture.id) }}
                             >
                                 <FixturePopup fixture={fixture} saved={saved} onToggle={onToggle} />
                             </Marker>

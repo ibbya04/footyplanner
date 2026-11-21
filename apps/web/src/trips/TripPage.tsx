@@ -7,6 +7,7 @@ import { type FixtureView, viewShortlist } from '../browse/viewFixtures';
 import { localToday, myZone } from '../dates';
 import { FixtureMap } from '../map/FixtureMap';
 import { downloadIcs } from '../shortlist/download';
+import { type Selection, useSelection } from '../selection';
 import { readShortlist, writeShortlist } from '../shortlist/store';
 import { Itinerary } from '../sidebar/Itinerary';
 import { ResizeHandle } from '../sidebar/ResizeHandle';
@@ -64,9 +65,11 @@ interface ViewProps {
     trip: TripResponse;
     views: FixtureView[];
     onOpenShortlist: () => void;
+    selection: Selection | null;
+    onSelect: (id: string) => void;
 }
 
-function TripView({ trip, views, onOpenShortlist }: ViewProps) {
+function TripView({ trip, views, onOpenShortlist, selection, onSelect }: ViewProps) {
     const links = tripLinks(window.location.origin, trip.id, null);
     const missing = trip.missing.length;
     return (
@@ -93,7 +96,7 @@ function TripView({ trip, views, onOpenShortlist }: ViewProps) {
                     Plan your own
                 </a>
             </div>
-            <Itinerary fixtures={views} />
+            <Itinerary fixtures={views} selection={selection} onSelect={onSelect} />
         </section>
     );
 }
@@ -106,6 +109,7 @@ export function TripPage({ id, competitions, onOpenShortlist }: Props) {
         () => viewShortlist(trip.data?.fixtures ?? [], competitions, AT_THE_VENUE, { today, myZone }),
         [trip.data, competitions, today],
     );
+    const [selection, select] = useSelection();
     const status = trip.error ? `Couldn't load the trip: ${trip.error.message}` : trip.data ? '' : 'Loading trip…';
     return (
         <main className={styles.app} style={{ '--sidebar': `${sidebar.width}px` } as CSSProperties}>
@@ -121,7 +125,15 @@ export function TripPage({ id, competitions, onOpenShortlist }: Props) {
                         {status}
                     </span>
                 </header>
-                {trip.data && <TripView trip={trip.data} views={views} onOpenShortlist={onOpenShortlist} />}
+                {trip.data && (
+                    <TripView
+                        trip={trip.data}
+                        views={views}
+                        onOpenShortlist={onOpenShortlist}
+                        selection={selection}
+                        onSelect={id => select(id, 'list')}
+                    />
+                )}
             </aside>
             <ResizeHandle {...sidebar} />
             <div className={styles.mapWrap}>
@@ -132,6 +144,8 @@ export function TripPage({ id, competitions, onOpenShortlist }: Props) {
                     onAreaChange={() => undefined}
                     savedIds={NO_SAVED}
                     route={views}
+                    selection={selection}
+                    onSelect={id => select(id, 'map')}
                 />
             </div>
         </main>

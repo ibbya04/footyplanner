@@ -27,6 +27,34 @@
         0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
+.live::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    border: 3px solid rgba(244, 63, 94, 0.8);
+    pointer-events: none;
+    animation: pulse 1.6s ease-out infinite;
+}
+
+@keyframes pulse {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: scale(1.8);
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live::after {
+        animation: none;
+        opacity: 0;
+    }
+}
+
 .approx {
     border-style: dashed;
 }

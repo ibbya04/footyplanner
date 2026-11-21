@@ -446,6 +446,7 @@
 }
 
 .card {
+    cursor: pointer;
     background: var(--panel-2);
     border: 1px solid var(--line);
     border-left: 3px solid var(--c);
@@ -691,4 +692,23 @@ a.chip {
 .handoff p {
     flex-basis: 100%;
     margin: 0 0 4px;
+}
+
+.selected {
+    border-color: var(--accent);
+    border-left-color: var(--c);
+}
+
+.showOnMap {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.showOnMap:hover {
+    text-decoration: underline;
 }

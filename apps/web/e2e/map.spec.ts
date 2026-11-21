@@ -9,6 +9,7 @@ test.beforeEach(async ({ page }) => {
 const pin = (page: Page, title: string) => page.locator(`.leaflet-marker-pane [title="${title}"]`);
 
 async function onScreen(page: Page, title: string) {
+    if (!(await pin(page, title).count())) return false;
     const box = await pin(page, title).boundingBox();
     const map = await page.locator('.leaflet-container').boundingBox();
     if (!box || !map) return false;
@@ -21,9 +22,9 @@ test('the sidebar names the app and says what it is for', async ({ page }) => {
 });
 
 test('"Fit matches" zooms the map to every listed fixture', async ({ page }) => {
-    const zoomIn = page.getByRole('button', { name: 'Zoom in' });
-    for (let i = 0; i < 4; i++) await zoomIn.click();
-    await expect.poll(() => onScreen(page, 'Real Madrid v Barcelona')).toBe(false);
+    await page.getByRole('button', { name: 'Show Real Madrid v Barcelona on the map' }).click();
+    await expect(page.locator('.leaflet-popup')).toBeVisible();
+    await expect.poll(() => onScreen(page, 'Liverpool v Arsenal')).toBe(false);
 
     await page.getByRole('button', { name: 'Fit matches' }).click();
 
@@ -57,4 +58,45 @@ test('the legend names the competition groups on the map', async ({ page }) => {
 
     await page.goto('/?comps=eng.1');
     await expect(legend.getByRole('listitem')).toHaveText(['England', 'Dashed pin = city, not exact ground']);
+});
+
+const zoomedToCity = (page: Page) => page.locator('.leaflet-tile-pane img[src*="/tile/11/"]').first();
+const card = (page: Page, list: string, title: string) =>
+    page.getByRole('region', { name: list }).getByRole('listitem').filter({ hasText: title });
+
+test('choosing a fixture in the list flies the map to it and opens its popup', async ({ page }) => {
+    await page.getByRole('button', { name: 'Show Real Madrid v Barcelona on the map' }).click();
+
+    await expect(page.locator('.leaflet-popup')).toContainText('Real Madrid v Barcelona');
+    await expect(zoomedToCity(page)).toBeAttached();
+    await expect.poll(() => onScreen(page, 'Real Madrid v Barcelona')).toBe(true);
+    await expect(card(page, 'Fixtures', 'Real Madrid v Barcelona')).toHaveAttribute('aria-current', 'true');
+});
+
+test('clicking a pin zooms the map to it and highlights its card in the list', async ({ page }) => {
+    await pin(page, 'Telstar v Ajax').locator('> div').click();
+
+    await expect(card(page, 'Fixtures', 'Telstar v Ajax')).toHaveAttribute('aria-current', 'true');
+    await expect(card(page, 'Fixtures', 'Liverpool v Arsenal')).not.toHaveAttribute('aria-current', 'true');
+    await expect(zoomedToCity(page)).toBeAttached();
+    await expect(page.locator('.leaflet-popup')).toContainText('Telstar v Ajax');
+});
+
+test('shortlist items and their pins select each other the same way', async ({ page }) => {
+    for (const title of ['Liverpool v Arsenal', 'Real Madrid v Barcelona']) {
+        await page
+            .getByRole('region', { name: 'Fixtures' })
+            .getByRole('button', { name: `Save ${title} to shortlist` })
+            .click();
+    }
+    await page.getByRole('tab', { name: /Shortlist/ }).click();
+
+    await page.getByRole('button', { name: 'Show Liverpool v Arsenal on the map' }).click();
+    await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Arsenal');
+    await expect(zoomedToCity(page)).toBeAttached();
+
+    await page.locator('.leaflet-popup-close-button').click();
+    await page.getByRole('button', { name: 'Fit matches' }).click();
+    await pin(page, 'Real Madrid v Barcelona').locator('> div').click();
+    await expect(card(page, 'Shortlist', 'Real Madrid v Barcelona')).toHaveAttribute('aria-current', 'true');
 });

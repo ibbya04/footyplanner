@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FixtureView } from '../browse/viewFixtures';
+import type { Selection } from '../selection';
 import { downloadIcs } from '../shortlist/download';
 import type { SavedTrip } from '../trips/useSavedTrip';
 import { Itinerary } from './Itinerary';
@@ -11,6 +12,8 @@ interface Props {
     trip: SavedTrip;
     onToggle: (id: string) => void;
     onClear: () => void;
+    selection: Selection | null;
+    onSelect: (id: string) => void;
 }
 
 function ClearButton({ linked, onClear }: { linked: boolean; onClear: () => void }) {
@@ -39,7 +42,7 @@ function ClearButton({ linked, onClear }: { linked: boolean; onClear: () => void
     );
 }
 
-export function ShortlistPanel({ fixtures, trip, onToggle, onClear }: Props) {
+export function ShortlistPanel({ fixtures, trip, onToggle, onClear, selection, onSelect }: Props) {
     const clear = () => {
         trip.forget();
         onClear();
@@ -65,7 +68,7 @@ export function ShortlistPanel({ fixtures, trip, onToggle, onClear }: Props) {
                         </button>
                         <ClearButton linked={!!trip.link} onClear={clear} />
                     </div>
-                    <Itinerary fixtures={fixtures} onToggle={onToggle} />
+                    <Itinerary fixtures={fixtures} onToggle={onToggle} selection={selection} onSelect={onSelect} />
                 </>
             )}
         </section>
