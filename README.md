@@ -130,7 +130,7 @@ The deploy jobs need two repository secrets:
 - `CLOUDFLARE_ACCOUNT_ID`: from the Cloudflare dashboard (Workers & Pages, right-hand side).
 - `CLOUDFLARE_API_TOKEN`: create one with the "Edit Cloudflare Workers" template, and add **D1: Edit** to its permissions for migrations. Its zone resources must include `footyplanner.co.uk`, so the deploy can attach the custom domain.
 
-The Worker is served only on `footyplanner.co.uk` (`routes` in `apps/api/wrangler.jsonc`); `workers.dev` is turned off so the zone's WAF and rate limiting rules can't be bypassed, while preview URLs stay on ([ADR 0019](docs/adr/0019-custom-domain-with-workers-dev-off.md)). To run your own copy, change the route to a domain on your Cloudflare account.
+The Worker is served only on `footyplanner.co.uk` (`routes` in `apps/api/wrangler.jsonc`); `workers.dev` is turned off so the zone's WAF and rate limiting rules ([ADR 0020](docs/adr/0020-edge-security-rules.md)) can't be bypassed, while preview URLs stay on ([ADR 0019](docs/adr/0019-custom-domain-with-workers-dev-off.md)). To run your own copy, change the route to a domain on your Cloudflare account.
 
 To deploy by hand: `pnpm exec wrangler login` once, then `pnpm deploy`.
 

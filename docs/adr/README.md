@@ -23,6 +23,7 @@ Short records of the decisions that shape footyplanner: the context, what was ch
 | [0017](0017-react-app-replaces-the-legacy-page.md)             | The React app replaces the legacy page at `/`           | Accepted                              |
 | [0018](0018-anonymous-trips-with-edit-tokens.md)               | Anonymous saved trips with edit tokens                  | Accepted                              |
 | [0019](0019-custom-domain-with-workers-dev-off.md)             | Custom domain, with `workers.dev` turned off            | Accepted                              |
+| [0020](0020-edge-security-rules.md)                            | Edge security rules on the zone                         | Accepted                              |
 
 ## Template
 

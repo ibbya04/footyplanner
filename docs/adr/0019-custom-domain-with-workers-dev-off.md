@@ -14,7 +14,7 @@ The site has been served from `footyplanner.footyplanner-api.workers.dev` ([deci
 - **The Worker is served on `footyplanner.co.uk`** as a Workers custom domain (`routes` in `wrangler.jsonc`, `custom_domain: true`). `wrangler deploy` creates the DNS record and certificate, so the zone has no hand-made records.
 - **`workers.dev` is turned off** (`workers_dev: false`). If it kept serving, anyone could reach the Worker around the zone's rules by using that address.
 - **Preview URLs stay on** (`preview_urls: true`), so pull requests keep getting `pr-<number>-footyplanner.<account>.workers.dev`. They serve versions that aren't deployed and are only linked from pull requests.
-- **Edge rules live on the zone**, set in the Cloudflare dashboard after the first deploy, not in the repo: the Free managed WAF ruleset and a rate limiting rule on `/api/*`. The Worker's own limiters stay as a second layer, `TRIP_LIMITER` especially, since it guards D1 writes.
+- **Edge rules live on the zone**, set in the Cloudflare dashboard after the first deploy, not in the repo: a rate limiting rule and custom WAF rules, recorded in [ADR 0020](0020-edge-security-rules.md). The Worker's own limiters stay as a second layer.
 
 ## Alternatives considered
 
