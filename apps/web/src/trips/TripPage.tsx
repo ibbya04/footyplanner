@@ -114,6 +114,9 @@ export function TripPage({ id, competitions, onOpenShortlist }: Props) {
                     <h1>
                         footy<span>planner</span>
                     </h1>
+                    <p className={sidebarStyles.tagline}>
+                        See what matches are on across Europe and plan a trip around them.
+                    </p>
                     <span className={sidebarStyles.status} role="status">
                         {status}
                     </span>
@@ -123,6 +126,7 @@ export function TripPage({ id, competitions, onOpenShortlist }: Props) {
             <ResizeHandle {...sidebar} />
             <div className={styles.mapWrap}>
                 <FixtureMap
+                    competitions={competitions}
                     fixtures={views}
                     near={null}
                     onAreaChange={() => undefined}

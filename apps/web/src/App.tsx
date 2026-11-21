@@ -66,6 +66,7 @@ function Planner({ competitions, initialTab }: { competitions: Competition[]; in
             <ResizeHandle {...sidebar} />
             <div className={styles.mapWrap}>
                 <FixtureMap
+                    competitions={competitions}
                     fixtures={onShortlist ? savedViews : view.fixtures}
                     near={filters.near}
                     onAreaChange={setArea}

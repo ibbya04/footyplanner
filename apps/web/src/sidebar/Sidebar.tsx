@@ -84,6 +84,7 @@ export function Sidebar({
                 <h1>
                     footy<span>planner</span>
                 </h1>
+                <p className={styles.tagline}>See what matches are on across Europe and plan a trip around them.</p>
                 <span className={styles.status} role="status">
                     {statusLine}
                 </span>

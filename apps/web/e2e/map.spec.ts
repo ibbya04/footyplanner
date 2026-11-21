@@ -1,0 +1,60 @@
+import type { Page } from '@playwright/test';
+import { expect, test } from './test';
+
+test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('status')).toHaveText('3 fixtures');
+});
+
+const pin = (page: Page, title: string) => page.locator(`.leaflet-marker-pane [title="${title}"]`);
+
+async function onScreen(page: Page, title: string) {
+    const box = await pin(page, title).boundingBox();
+    const map = await page.locator('.leaflet-container').boundingBox();
+    if (!box || !map) return false;
+    return box.x >= map.x && box.x <= map.x + map.width && box.y >= map.y && box.y <= map.y + map.height;
+}
+
+test('the sidebar names the app and says what it is for', async ({ page }) => {
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('footyplanner');
+    await expect(page.getByText('See what matches are on across Europe')).toBeVisible();
+});
+
+test('"Fit matches" zooms the map to every listed fixture', async ({ page }) => {
+    const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+    for (let i = 0; i < 4; i++) await zoomIn.click();
+    await expect.poll(() => onScreen(page, 'Real Madrid v Barcelona')).toBe(false);
+
+    await page.getByRole('button', { name: 'Fit matches' }).click();
+
+    for (const title of ['Liverpool v Arsenal', 'Real Madrid v Barcelona', 'Telstar v Ajax']) {
+        await expect.poll(() => onScreen(page, title)).toBe(true);
+    }
+});
+
+test('the map style can be changed and is remembered', async ({ page }) => {
+    const style = page.getByRole('combobox', { name: 'Map style' });
+    await expect(style).toHaveValue('dark');
+    await expect(page.locator('.leaflet-tile-pane img[src*="World_Dark_Gray_Base"]').first()).toBeAttached();
+
+    await style.selectOption({ label: 'Light' });
+    await expect(page.locator('.leaflet-tile-pane img[src*="World_Light_Gray_Base"]').first()).toBeAttached();
+    await expect(page.locator('.leaflet-tile-pane img[src*="World_Dark_Gray_Base"]')).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByRole('combobox', { name: 'Map style' })).toHaveValue('light');
+    await expect(page.locator('.leaflet-tile-pane img[src*="World_Light_Gray_Base"]').first()).toBeAttached();
+});
+
+test('the legend names the competition groups on the map', async ({ page }) => {
+    const legend = page.getByRole('list', { name: 'Legend' });
+    await expect(legend.getByRole('listitem')).toHaveText([
+        'England',
+        'Spain',
+        'Rest of Europe',
+        'Dashed pin = city, not exact ground',
+    ]);
+
+    await page.goto('/?comps=eng.1');
+    await expect(legend.getByRole('listitem')).toHaveText(['England', 'Dashed pin = city, not exact ground']);
+});

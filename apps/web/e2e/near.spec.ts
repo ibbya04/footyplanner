@@ -17,7 +17,7 @@ test('searching for a place shows fixtures within 100 km of it, with their dista
 
     await nearButton(page).click();
     await nearDialog(page).getByRole('combobox', { name: 'Find fixtures near a place' }).fill('Amster');
-    const options = page.getByRole('option');
+    const options = page.getByRole('listbox', { name: 'Places' }).getByRole('option');
     await expect(options).toHaveCount(1);
     await expect(options.first()).toContainText('North Holland, Netherlands');
     await options.first().click();
