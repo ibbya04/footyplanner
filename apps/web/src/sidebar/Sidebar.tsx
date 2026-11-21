@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { UpdateFilters } from '../browse/useFilters';
 import type { UrlFilters } from '../browse/urlFilters';
 import type { FixturesView, FixtureView } from '../browse/viewFixtures';
+import type { Selection } from '../selection';
 import type { Shortlist } from '../shortlist/useShortlist';
 import type { SavedTrip } from '../trips/useSavedTrip';
 import { CompetitionPicker } from './CompetitionPicker';
@@ -31,6 +32,8 @@ interface Props {
     shortlist: Shortlist;
     savedViews: FixtureView[];
     trip: SavedTrip;
+    selection: Selection | null;
+    onSelect: (id: string) => void;
 }
 
 type OpenPopover = 'dates' | 'near' | null;
@@ -74,6 +77,8 @@ export function Sidebar({
     shortlist,
     savedViews,
     trip,
+    selection,
+    onSelect,
 }: Props) {
     const [open, setOpen] = useState<OpenPopover>(null);
     const toggle = (name: Exclude<OpenPopover, null>) => (isOpen: boolean) =>
@@ -84,6 +89,7 @@ export function Sidebar({
                 <h1>
                     footy<span>planner</span>
                 </h1>
+                <p className={styles.tagline}>See what matches are on across Europe and plan a trip around them.</p>
                 <span className={styles.status} role="status">
                     {statusLine}
                 </span>
@@ -114,6 +120,8 @@ export function Sidebar({
                     trip={trip}
                     onToggle={shortlist.toggle}
                     onClear={shortlist.clear}
+                    selection={selection}
+                    onSelect={onSelect}
                 />
             ) : (
                 <>
@@ -130,6 +138,8 @@ export function Sidebar({
                         loading={loading}
                         savedIds={shortlist.savedIds}
                         onToggle={shortlist.toggle}
+                        selection={selection}
+                        onSelect={onSelect}
                     />
                 </>
             )}

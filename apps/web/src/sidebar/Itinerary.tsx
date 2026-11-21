@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import type { FixtureView } from '../browse/viewFixtures';
 import { dateLabel } from '../browse/timeZones';
+import type { Selection } from '../selection';
 import { legs } from '../shortlist/itinerary';
 import { FixtureCard } from './FixtureCard';
 import { FixtureLinks } from './FixtureLinks';
@@ -9,9 +10,11 @@ import styles from './Sidebar.module.css';
 interface Props {
     fixtures: FixtureView[];
     onToggle?: (id: string) => void;
+    selection: Selection | null;
+    onSelect: (id: string) => void;
 }
 
-export function Itinerary({ fixtures, onToggle }: Props) {
+export function Itinerary({ fixtures, onToggle, selection, onSelect }: Props) {
     const between = legs(fixtures);
     return (
         <ol className={styles.cards}>
@@ -30,7 +33,13 @@ export function Itinerary({ fixtures, onToggle }: Props) {
                                 <h3 className={styles.dayHead}>{dateLabel(fixture.day)}</h3>
                             </li>
                         )}
-                        <FixtureCard fixture={fixture} saved {...(onToggle ? { onToggle } : {})}>
+                        <FixtureCard
+                            fixture={fixture}
+                            saved
+                            {...(onToggle ? { onToggle } : {})}
+                            selection={selection}
+                            onSelect={onSelect}
+                        >
                             <FixtureLinks fixture={fixture} className={styles.cardLinks} />
                         </FixtureCard>
                     </Fragment>

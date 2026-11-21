@@ -1,5 +1,6 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { type CSSProperties, type MouseEvent, type ReactNode, useEffect, useRef } from 'react';
 import type { FixtureView } from '../browse/viewFixtures';
+import type { Selection } from '../selection';
 import styles from './Sidebar.module.css';
 import { StarButton } from './StarButton';
 
@@ -12,14 +13,30 @@ interface Props {
     fixture: FixtureView;
     saved: boolean;
     onToggle?: (id: string) => void;
+    selection?: Selection | null;
+    onSelect?: (id: string) => void;
     children?: ReactNode;
 }
 
-export function FixtureCard({ fixture, saved, onToggle, children }: Props) {
+const onControl = (event: MouseEvent) => event.target instanceof Element && event.target.closest('a, button');
+
+export function FixtureCard({ fixture, saved, onToggle, selection, onSelect, children }: Props) {
     const { competition } = fixture;
     const score = scoreText(fixture);
+    const card = useRef<HTMLLIElement>(null);
+    const selected = selection?.id === fixture.id;
+    useEffect(() => {
+        if (selected && selection?.source === 'map')
+            card.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, [selected, selection]);
     return (
-        <li className={styles.card} style={{ '--c': competition.group.color } as CSSProperties}>
+        <li
+            ref={card}
+            className={selected ? `${styles.card} ${styles.selected}` : styles.card}
+            style={{ '--c': competition.group.color } as CSSProperties}
+            aria-current={selected ? 'true' : undefined}
+            onClick={event => onSelect && !onControl(event) && onSelect(fixture.id)}
+        >
             <div className={styles.cardHead}>
                 <span className={styles.compTag} title={competition.name}>
                     {competition.short}
@@ -31,7 +48,18 @@ export function FixtureCard({ fixture, saved, onToggle, children }: Props) {
                 {onToggle && <StarButton title={fixture.title} saved={saved} onToggle={() => onToggle(fixture.id)} />}
             </div>
             <div className={styles.teams}>
-                {fixture.title}
+                {onSelect ? (
+                    <button
+                        type="button"
+                        className={styles.showOnMap}
+                        aria-label={`Show ${fixture.title} on the map`}
+                        onClick={() => onSelect(fixture.id)}
+                    >
+                        {fixture.title}
+                    </button>
+                ) : (
+                    fixture.title
+                )}
                 {score && <span className={styles.score}>{score}</span>}
             </div>
             {fixture.venueText && (

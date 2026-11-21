@@ -1,20 +1,18 @@
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { type CSSProperties, useEffect } from 'react';
+import type { Competition } from '@footyplanner/shared';
+import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
 import { Circle, MapContainer, Marker, Polyline, Popup, TileLayer, useMap, ZoomControl } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
 import type { Area, FixtureView, Near } from '../browse/viewFixtures';
+import type { Selection } from '../selection';
 import styles from './FixtureMap.module.css';
 import { FixtureLinks } from '../sidebar/FixtureLinks';
 import { StarButton } from '../sidebar/StarButton';
+import { legendGroups } from './legend';
+import { MAP_STYLES, type MapStyle, type MapStyleKey, useMapStyle } from './mapStyles';
 import { clusterIcon, homeIcon, pinIcon } from './pins';
-
-const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
-const ESRI_ATTRIBUTION =
-    'Tiles &copy; <a href="https://www.esri.com">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors';
-const DARK_BASE = `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`;
-const DARK_LABELS = `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`;
 
 interface PopupProps {
     fixture: FixtureView;
@@ -111,13 +109,54 @@ function located(fixture: FixtureView): LatLng[] {
     return lat == null || lng == null ? [] : [[lat, lng]];
 }
 
+const CITY_ZOOM = 11;
+
+type Markers = RefObject<Map<string, L.Marker>>;
+
+interface SelectionProps {
+    selection: Selection | null;
+    markers: Markers;
+    cluster: L.MarkerClusterGroup | null;
+}
+
+function remember(markers: Markers, id: string, marker: L.Marker | null) {
+    if (!marker) return;
+    markers.current.set(id, marker);
+    return () => {
+        markers.current.delete(id);
+    };
+}
+
+function FlyToSelection({ selection, markers, cluster }: SelectionProps) {
+    const map = useMap();
+    useEffect(() => {
+        const marker = selection && markers.current.get(selection.id);
+        if (!marker || !cluster) return;
+        const zoom = Math.max(map.getZoom(), CITY_ZOOM);
+        const show = () => {
+            if (map.getZoom() < zoom) return;
+            map.off('moveend', show);
+            cluster.zoomToShowLayer(marker, () => marker.openPopup());
+        };
+        map.on('moveend', show);
+        map.flyTo(marker.getLatLng(), zoom, { duration: 0.8 });
+        return () => {
+            map.off('moveend', show);
+        };
+    }, [map, selection, markers, cluster]);
+    return null;
+}
+
+function fitTo(map: L.Map, points: LatLng[]) {
+    if (points.length) map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 11 });
+}
+
 function RouteLayer({ route }: { route: FixtureView[] }) {
     const map = useMap();
     const points = route.flatMap(located);
     const signature = JSON.stringify(points);
     useEffect(() => {
-        const fitTo = JSON.parse(signature) as LatLng[];
-        if (fitTo.length) map.fitBounds(L.latLngBounds(fitTo), { padding: [40, 40], maxZoom: 11 });
+        fitTo(map, JSON.parse(signature) as LatLng[]);
     }, [map, signature]);
     if (points.length < 2) return null;
     return (
@@ -130,48 +169,128 @@ function RouteLayer({ route }: { route: FixtureView[] }) {
     );
 }
 
+function StyleLayers({ style }: { style: MapStyleKey }) {
+    const { base, labels, attribution, maxNativeZoom }: MapStyle = MAP_STYLES[style];
+    return (
+        <>
+            <TileLayer key={base} url={base} maxNativeZoom={maxNativeZoom} maxZoom={19} attribution={attribution} />
+            {labels && <TileLayer key={labels} url={labels} maxNativeZoom={maxNativeZoom} maxZoom={19} />}
+        </>
+    );
+}
+
+interface ToolsProps {
+    style: MapStyleKey;
+    onStyle: (key: string) => void;
+    onFit: () => void;
+}
+
+function MapTools({ style, onStyle, onFit }: ToolsProps) {
+    return (
+        <div className={styles.tools}>
+            <select aria-label="Map style" value={style} onChange={event => onStyle(event.target.value)}>
+                {Object.entries(MAP_STYLES).map(([key, { label }]) => (
+                    <option key={key} value={key}>
+                        {label}
+                    </option>
+                ))}
+            </select>
+            <button type="button" title="Zoom to all listed matches" onClick={onFit}>
+                Fit matches
+            </button>
+        </div>
+    );
+}
+
+function Legend({ competitions, fixtures }: { competitions: Competition[]; fixtures: FixtureView[] }) {
+    const groups = legendGroups(competitions, fixtures);
+    if (!groups.length) return null;
+    return (
+        <ul className={styles.legend} aria-label="Legend">
+            {groups.map(group => (
+                <li key={group.key}>
+                    <span className={styles.dot} style={{ background: group.color }} />
+                    {group.name}
+                </li>
+            ))}
+            <li className={styles.note}>Dashed pin = city, not exact ground</li>
+        </ul>
+    );
+}
+
 interface Props {
+    competitions: Competition[];
     fixtures: FixtureView[];
     near: Near | null;
     onAreaChange: (area: Area) => void;
     savedIds: Set<string>;
     onToggle?: (id: string) => void;
     route: FixtureView[] | null;
+    selection: Selection | null;
+    onSelect: (id: string) => void;
 }
 
-export function FixtureMap({ fixtures, near, onAreaChange, savedIds, onToggle, route }: Props) {
+export function FixtureMap({
+    competitions,
+    fixtures,
+    near,
+    onAreaChange,
+    savedIds,
+    onToggle,
+    route,
+    selection,
+    onSelect,
+}: Props) {
+    const [map, setMap] = useState<L.Map | null>(null);
+    const [cluster, setCluster] = useState<L.MarkerClusterGroup | null>(null);
+    const markers = useRef(new Map<string, L.Marker>());
+    const [style, setStyle] = useMapStyle();
     return (
-        <MapContainer className={styles.map} center={[49, 8]} zoom={5} zoomControl={false} worldCopyJump>
-            <ZoomControl position="topright" />
-            <AreaReporter onChange={onAreaChange} />
-            <SizeWatcher />
-            <TileLayer url={DARK_BASE} maxNativeZoom={16} maxZoom={19} attribution={ESRI_ATTRIBUTION} />
-            <TileLayer url={DARK_LABELS} maxNativeZoom={16} maxZoom={19} />
-            {near && <NearLayer near={near} />}
-            {route && <RouteLayer route={route} />}
-            <MarkerClusterGroup
-                maxClusterRadius={45}
-                showCoverageOnHover={false}
-                spiderfyOnMaxZoom
-                spiderfyDistanceMultiplier={1.6}
-                iconCreateFunction={clusterIcon}
+        <>
+            <MapContainer
+                ref={setMap}
+                className={styles.map}
+                center={[49, 8]}
+                zoom={5}
+                zoomControl={false}
+                worldCopyJump
             >
-                {fixtures.map(fixture => {
-                    const { lat, lng } = fixture.venue ?? {};
-                    if (lat == null || lng == null) return null;
-                    const saved = savedIds.has(fixture.id);
-                    return (
-                        <Marker
-                            key={fixture.id}
-                            position={[lat, lng]}
-                            icon={pinIcon(fixture, saved)}
-                            title={fixture.title}
-                        >
-                            <FixturePopup fixture={fixture} saved={saved} onToggle={onToggle} />
-                        </Marker>
-                    );
-                })}
-            </MarkerClusterGroup>
-        </MapContainer>
+                <ZoomControl position="topright" />
+                <AreaReporter onChange={onAreaChange} />
+                <SizeWatcher />
+                <StyleLayers style={style} />
+                {near && <NearLayer near={near} />}
+                {route && <RouteLayer route={route} />}
+                <FlyToSelection selection={selection} markers={markers} cluster={cluster} />
+                <MarkerClusterGroup
+                    ref={setCluster}
+                    maxClusterRadius={45}
+                    showCoverageOnHover={false}
+                    spiderfyOnMaxZoom
+                    spiderfyDistanceMultiplier={1.6}
+                    iconCreateFunction={clusterIcon}
+                >
+                    {fixtures.map(fixture => {
+                        const { lat, lng } = fixture.venue ?? {};
+                        if (lat == null || lng == null) return null;
+                        const saved = savedIds.has(fixture.id);
+                        return (
+                            <Marker
+                                key={fixture.id}
+                                position={[lat, lng]}
+                                icon={pinIcon(fixture, saved)}
+                                title={fixture.title}
+                                ref={marker => remember(markers, fixture.id, marker)}
+                                eventHandlers={{ click: () => onSelect(fixture.id) }}
+                            >
+                                <FixturePopup fixture={fixture} saved={saved} onToggle={onToggle} />
+                            </Marker>
+                        );
+                    })}
+                </MarkerClusterGroup>
+            </MapContainer>
+            <MapTools style={style} onStyle={setStyle} onFit={() => map && fitTo(map, fixtures.flatMap(located))} />
+            <Legend competitions={competitions} fixtures={fixtures} />
+        </>
     );
 }
