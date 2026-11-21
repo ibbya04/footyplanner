@@ -34,7 +34,7 @@
   <text class="title" x="40" y="40">footyplanner architecture</text>
 
   <rect class="zone" x="270" y="90" width="630" height="560" rx="12" />
-  <text class="zone-label" x="290" y="118">CLOUDFLARE · footyplanner.co.uk</text>
+  <text class="zone-label" x="290" y="118">CLOUDFLARE (CDN·DNS·TLS)</text>
   <rect class="zone" x="540" y="130" width="330" height="330" rx="10" />
   <text class="zone-label" x="560" y="152">CLOUDFLARE WORKER</text>
 
@@ -111,7 +111,7 @@
   <text class="label" x="744" y="552">R2 Bucket</text>
   <text class="small" x="744" y="572">club and</text>
   <text class="small" x="744" y="589">competition</text>
-  <text class="small" x="744" y="606">crests</text>
+  <text class="small" x="744" y="606">crests (images)</text>
 
   <rect class="node external" x="940" y="110" width="160" height="60" rx="8" />
   <text class="label" x="964" y="146">Esri basemaps</text>
