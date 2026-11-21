@@ -14,24 +14,7 @@ It runs at [footyplanner.co.uk](https://footyplanner.co.uk) on Cloudflare Worker
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    B[Browser] -->|HTTPS| W
-    B -->|place search| P
-    Cal[Calendar apps] -->|/t/id.ics| W
-    subgraph CF[Cloudflare]
-        W[Worker<br/>static assets · /api/* · /img/* · /t/*]
-        C[Cron handler<br/>every minute]
-        D[(D1<br/>fixtures, venues, trips,<br/>ingest queue)]
-        R[(R2<br/>crests)]
-        W --> D
-        W --> R
-        C --> D
-        C --> R
-    end
-    C -->|scoreboard?dates=YYYYMM| E[ESPN]
-    C -->|geocode new venues| P[Photon / OSM]
-```
+![footyplanner architecture: visitors reach one Cloudflare Worker through edge rules and the edge cache; the cron fills D1 and R2 from ESPN and Photon](docs/architecture.svg)
 
 One Worker serves the page, the API and the trip feeds, and runs the cron ([ADR 0002](docs/adr/0002-one-worker-for-page-api-and-cron.md)). Static files are served without running the Worker. Visitor requests only read D1 and R2, and most are answered from Cloudflare's edge cache; only the cron talks to ESPN and Photon ([ADR 0008](docs/adr/0008-cron-only-ingestion.md)). The browser's place search calls Photon directly ([ADR 0014](docs/adr/0014-place-search-calls-photon-from-the-browser.md)).
 
