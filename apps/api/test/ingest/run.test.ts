@@ -38,17 +38,47 @@ describe('seed data', () => {
             tbc_weeks: 5,
             featured: 1,
         });
-        expect(await all(`SELECT key FROM venue_overrides ORDER BY key`)).toEqual([
-            { key: 'estadio de la cerámica|villarreal|spain' },
-            { key: 'stade louis ii|monaco|france' },
-        ]);
-        expect(
-            await one(
-                `SELECT lat, lng, precision FROM venue_overrides WHERE key = 'estadio de la cerámica|villarreal|spain'`,
-            ),
-        ).toEqual({
+        expect(await one('SELECT count(*) n FROM venue_overrides')).toEqual({ n: 55 });
+        const overrides = new Map(
+            (
+                await all<{ key: string; lat: number; lng: number; precision: string }>(
+                    'SELECT key, lat, lng, precision FROM venue_overrides',
+                )
+            ).map(row => [row.key, row]),
+        );
+        expect(overrides.get('stade louis ii|monaco|france')).toMatchObject({
+            lat: 43.72762,
+            lng: 7.41556,
+            precision: 'stadium',
+        });
+        expect(overrides.get('estadio de la cerámica|villarreal|spain')).toMatchObject({
             lat: 39.94417,
             lng: -0.10361,
+            precision: 'stadium',
+        });
+        expect(overrides.get('signal iduna park|aue|germany')).toMatchObject({
+            lat: 51.49267,
+            lng: 7.45177,
+            precision: 'stadium',
+        });
+        expect(overrides.get('london stadium|london|england')).toMatchObject({
+            lat: 51.53861,
+            lng: -0.01639,
+            precision: 'stadium',
+        });
+        expect(overrides.get('the smisa stadium|paisley|scotland')).toMatchObject({
+            lat: 55.85056,
+            lng: -4.44389,
+            precision: 'stadium',
+        });
+        expect(overrides.get("stade de l'aube|paris|france")).toMatchObject({
+            lat: 48.30756,
+            lng: 4.09846,
+            precision: 'stadium',
+        });
+        expect(overrides.get('fortuna arena|prague|czechia')).toMatchObject({
+            lat: 50.0675,
+            lng: 14.4715,
             precision: 'stadium',
         });
     });
