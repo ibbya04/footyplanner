@@ -108,17 +108,23 @@ test('zooming in after selecting a fixture keeps the map and popup working witho
     await pin(page, 'Liverpool v Arsenal').locator('> div').click();
     await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Arsenal');
     await expect(zoomedToCity(page)).toBeAttached();
+    await expect(page.locator('.leaflet-zoom-anim')).toHaveCount(0);
 
-    const map = page.locator('.leaflet-container');
-    const box = await map.boundingBox();
-    if (!box) throw new Error('no map');
-    await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.7);
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
+        await page.getByRole('button', { name: 'Zoom in' }).click();
+        await expect(page.locator('.leaflet-zoom-anim')).toHaveCount(0);
+    }
+
+    const pinBox = await pin(page, 'Liverpool v Arsenal').locator('> div').boundingBox();
+    if (!pinBox) throw new Error('no pin');
+    await page.mouse.move(pinBox.x + pinBox.width / 2, pinBox.y + pinBox.height / 2 + 5);
+    for (let i = 0; i < 4; i++) {
         await page.mouse.wheel(0, -120);
         await page.waitForTimeout(150);
     }
+    await expect(page.locator('.leaflet-zoom-anim')).toHaveCount(0);
 
-    await expect(map).toBeVisible();
+    await expect(page.locator('.leaflet-container')).toBeVisible();
     await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Arsenal');
     expect(errors).toEqual([]);
 });
