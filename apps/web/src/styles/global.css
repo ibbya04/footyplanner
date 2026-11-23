@@ -94,3 +94,7 @@ a {
 .leaflet-marker-icon.pin-icon:hover {
     z-index: 10000 !important;
 }
+
+.leaflet-marker-icon.pin-icon:has([data-selected='true']) {
+    z-index: 1000001 !important;
+}

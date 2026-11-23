@@ -1,7 +1,7 @@
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { Competition } from '@footyplanner/shared';
-import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, memo, type RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Circle, MapContainer, Marker, Polyline, Popup, TileLayer, useMap, ZoomControl } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
@@ -83,21 +83,20 @@ function SizeWatcher() {
     return null;
 }
 
+const NEAR_CIRCLE = { color: '#10b981', weight: 1.5, dashArray: '6 6', fillOpacity: 0.05 };
+
 function NearLayer({ near }: { near: Near }) {
     const map = useMap();
     const { lat, lng, radius } = near;
+    const center = useMemo<LatLng>(() => [lat, lng], [lat, lng]);
+    const icon = useMemo(() => homeIcon(), []);
     useEffect(() => {
         map.fitBounds(L.latLng(lat, lng).toBounds(radius * 2000), { padding: [20, 20] });
     }, [map, lat, lng, radius]);
     return (
         <>
-            <Circle
-                center={[lat, lng]}
-                radius={radius * 1000}
-                pathOptions={{ color: '#10b981', weight: 1.5, dashArray: '6 6', fillOpacity: 0.05 }}
-                interactive={false}
-            />
-            <Marker position={[lat, lng]} icon={homeIcon()} title={near.name} keyboard={false} zIndexOffset={1000} />
+            <Circle center={center} radius={radius * 1000} pathOptions={NEAR_CIRCLE} interactive={false} />
+            <Marker position={center} icon={icon} title={near.name} keyboard={false} zIndexOffset={1000} />
         </>
     );
 }
@@ -116,7 +115,7 @@ type Markers = RefObject<Map<string, L.Marker>>;
 interface SelectionProps {
     selection: Selection | null;
     markers: Markers;
-    cluster: L.MarkerClusterGroup | null;
+    cluster: RefObject<L.MarkerClusterGroup | null>;
 }
 
 function remember(markers: Markers, id: string, marker: L.Marker | null) {
@@ -127,25 +126,69 @@ function remember(markers: Markers, id: string, marker: L.Marker | null) {
     };
 }
 
+function isSpiderfied(marker: L.Marker): boolean {
+    return '_preSpiderfyLatlng' in marker;
+}
+
 function FlyToSelection({ selection, markers, cluster }: SelectionProps) {
     const map = useMap();
     useEffect(() => {
         const marker = selection && markers.current.get(selection.id);
-        if (!marker || !cluster) return;
-        const zoom = Math.max(map.getZoom(), CITY_ZOOM);
+        const group = cluster.current;
+        if (!marker || !group) return;
+        if (isSpiderfied(marker) || map.getZoom() >= CITY_ZOOM) {
+            group.zoomToShowLayer(marker, () => marker.openPopup());
+            return;
+        }
         const show = () => {
-            if (map.getZoom() < zoom) return;
+            if (map.getZoom() < CITY_ZOOM) return;
             map.off('moveend', show);
-            cluster.zoomToShowLayer(marker, () => marker.openPopup());
+            group.zoomToShowLayer(marker, () => marker.openPopup());
         };
         map.on('moveend', show);
-        map.flyTo(marker.getLatLng(), zoom, { duration: 0.8 });
+        map.flyTo(marker.getLatLng(), CITY_ZOOM, { duration: 0.8 });
         return () => {
             map.off('moveend', show);
         };
     }, [map, selection, markers, cluster]);
     return null;
 }
+
+interface MarkerProps {
+    fixture: FixtureView;
+    saved: boolean;
+    selected: boolean;
+    markers: Markers;
+    onSelect: (id: string) => void;
+    onToggle?: (id: string) => void;
+}
+
+const FixtureMarker = memo(function FixtureMarker({
+    fixture,
+    saved,
+    selected,
+    markers,
+    onSelect,
+    onToggle,
+}: MarkerProps) {
+    const lat = fixture.venue?.lat;
+    const lng = fixture.venue?.lng;
+    const position = useMemo<LatLng | null>(() => (lat == null || lng == null ? null : [lat, lng]), [lat, lng]);
+    const live = fixture.status.state === 'in';
+    const { competition, approximate } = fixture;
+    const icon = useMemo(
+        () => pinIcon({ competition, live, approximate, saved, selected }),
+        [competition, live, approximate, saved, selected],
+    );
+    const ref = useCallback((marker: L.Marker | null) => remember(markers, fixture.id, marker), [markers, fixture.id]);
+    const eventHandlers = useMemo(() => ({ click: () => onSelect(fixture.id) }), [onSelect, fixture.id]);
+    if (!position) return null;
+    return (
+        <Marker position={position} icon={icon} title={fixture.title} ref={ref} eventHandlers={eventHandlers}>
+            <FixturePopup fixture={fixture} saved={saved} onToggle={onToggle} />
+        </Marker>
+    );
+});
 
 function fitTo(map: L.Map, points: LatLng[]) {
     if (points.length) map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 11 });
@@ -241,20 +284,13 @@ export function FixtureMap({
     selection,
     onSelect,
 }: Props) {
-    const [map, setMap] = useState<L.Map | null>(null);
-    const [cluster, setCluster] = useState<L.MarkerClusterGroup | null>(null);
+    const map = useRef<L.Map | null>(null);
+    const cluster = useRef<L.MarkerClusterGroup | null>(null);
     const markers = useRef(new Map<string, L.Marker>());
     const [style, setStyle] = useMapStyle();
     return (
         <>
-            <MapContainer
-                ref={setMap}
-                className={styles.map}
-                center={[49, 8]}
-                zoom={5}
-                zoomControl={false}
-                worldCopyJump
-            >
+            <MapContainer ref={map} className={styles.map} center={[49, 8]} zoom={5} zoomControl={false} worldCopyJump>
                 <ZoomControl position="topright" />
                 <AreaReporter onChange={onAreaChange} />
                 <SizeWatcher />
@@ -263,33 +299,31 @@ export function FixtureMap({
                 {route && <RouteLayer route={route} />}
                 <FlyToSelection selection={selection} markers={markers} cluster={cluster} />
                 <MarkerClusterGroup
-                    ref={setCluster}
+                    ref={cluster}
                     maxClusterRadius={45}
                     showCoverageOnHover={false}
                     spiderfyOnMaxZoom
                     spiderfyDistanceMultiplier={1.6}
                     iconCreateFunction={clusterIcon}
                 >
-                    {fixtures.map(fixture => {
-                        const { lat, lng } = fixture.venue ?? {};
-                        if (lat == null || lng == null) return null;
-                        const saved = savedIds.has(fixture.id);
-                        return (
-                            <Marker
-                                key={fixture.id}
-                                position={[lat, lng]}
-                                icon={pinIcon(fixture, saved)}
-                                title={fixture.title}
-                                ref={marker => remember(markers, fixture.id, marker)}
-                                eventHandlers={{ click: () => onSelect(fixture.id) }}
-                            >
-                                <FixturePopup fixture={fixture} saved={saved} onToggle={onToggle} />
-                            </Marker>
-                        );
-                    })}
+                    {fixtures.map(fixture => (
+                        <FixtureMarker
+                            key={fixture.id}
+                            fixture={fixture}
+                            saved={savedIds.has(fixture.id)}
+                            selected={selection?.id === fixture.id}
+                            markers={markers}
+                            onSelect={onSelect}
+                            onToggle={onToggle}
+                        />
+                    ))}
                 </MarkerClusterGroup>
             </MapContainer>
-            <MapTools style={style} onStyle={setStyle} onFit={() => map && fitTo(map, fixtures.flatMap(located))} />
+            <MapTools
+                style={style}
+                onStyle={setStyle}
+                onFit={() => map.current && fitTo(map.current, fixtures.flatMap(located))}
+            />
             <Legend competitions={competitions} fixtures={fixtures} />
         </>
     );

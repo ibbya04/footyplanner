@@ -38,7 +38,19 @@ describe('seed data', () => {
             tbc_weeks: 5,
             featured: 1,
         });
-        expect(await one(`SELECT key FROM venue_overrides`)).toEqual({ key: 'stade louis ii|monaco|france' });
+        expect(await all(`SELECT key FROM venue_overrides ORDER BY key`)).toEqual([
+            { key: 'estadio de la cerámica|villarreal|spain' },
+            { key: 'stade louis ii|monaco|france' },
+        ]);
+        expect(
+            await one(
+                `SELECT lat, lng, precision FROM venue_overrides WHERE key = 'estadio de la cerámica|villarreal|spain'`,
+            ),
+        ).toEqual({
+            lat: 39.94417,
+            lng: -0.10361,
+            precision: 'stadium',
+        });
     });
 });
 
