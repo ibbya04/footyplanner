@@ -27,15 +27,18 @@ function Planner({ competitions, initialTab }: { competitions: Competition[]; in
     const shortlist = useShortlist(fixtures.data?.fixtures);
     const trip = useSavedTrip(shortlist.saved);
     const [selection, select] = useSelection();
+    const selectFromList = useCallback((id: string) => select(id, 'list'), [select]);
+    const selectFromMap = useCallback((id: string) => select(id, 'map'), [select]);
+    const activeArea = filters.inView ? area : null;
     const view = useMemo(
         () =>
             viewFixtures(
                 fixtures.data?.fixtures ?? [],
                 competitions,
-                { ...filters, area: filters.inView ? area : null },
+                { ...filters, area: activeArea },
                 { today, myZone },
             ),
-        [fixtures.data, competitions, filters, area, today],
+        [fixtures.data, competitions, filters, activeArea, today],
     );
     const savedViews = useMemo(
         () => viewShortlist(shortlist.saved, competitions, filters, { today, myZone }),
@@ -65,7 +68,7 @@ function Planner({ competitions, initialTab }: { competitions: Competition[]; in
                 savedViews={savedViews}
                 trip={trip}
                 selection={selection}
-                onSelect={id => select(id, 'list')}
+                onSelect={selectFromList}
             />
             <ResizeHandle {...sidebar} />
             <div className={styles.mapWrap}>
@@ -78,7 +81,7 @@ function Planner({ competitions, initialTab }: { competitions: Competition[]; in
                     onToggle={shortlist.toggle}
                     route={onShortlist ? savedViews : null}
                     selection={selection}
-                    onSelect={id => select(id, 'map')}
+                    onSelect={selectFromMap}
                 />
             </div>
         </main>

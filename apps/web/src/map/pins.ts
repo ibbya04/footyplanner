@@ -1,5 +1,4 @@
 import type { Competition } from '@footyplanner/shared';
-import type { FixtureView } from '../browse/viewFixtures';
 import L from 'leaflet';
 import styles from './FixtureMap.module.css';
 
@@ -19,13 +18,24 @@ function crest(competition: Competition): HTMLElement {
     return el;
 }
 
-export function pinIcon(fixture: FixtureView, saved: boolean): L.DivIcon {
-    const { competition } = fixture;
+export interface PinOptions {
+    competition: Competition;
+    live: boolean;
+    approximate: boolean;
+    saved: boolean;
+    selected: boolean;
+}
+
+export function pinIcon({ competition, live, approximate, saved, selected }: PinOptions): L.DivIcon {
     const el = crest(competition);
     el.classList.add(styles.pin ?? '');
-    if (fixture.status.state === 'in') el.classList.add(styles.live ?? '');
-    if (fixture.approximate) el.classList.add(styles.approx ?? '');
+    if (live) el.classList.add(styles.live ?? '');
+    if (approximate) el.classList.add(styles.approx ?? '');
     if (saved) el.classList.add(styles.saved ?? '');
+    if (selected) {
+        el.classList.add(styles.selected ?? '');
+        el.dataset.selected = 'true';
+    }
     el.style.setProperty('--c', competition.group.color);
     el.title = competition.name;
     return L.divIcon({ className: 'pin-icon', html: el, iconSize: [0, 0] });

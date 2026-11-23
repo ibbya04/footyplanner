@@ -1,5 +1,5 @@
 import type { Competition, TripResponse } from '@footyplanner/shared';
-import { type CSSProperties, useMemo, useState } from 'react';
+import { type CSSProperties, useCallback, useMemo, useState } from 'react';
 import { useTrip } from '../api/trips';
 import styles from '../App.module.css';
 import { browserStorage } from '../browserStorage';
@@ -24,6 +24,7 @@ interface Props {
 
 const NO_SAVED = new Set<string>();
 const AT_THE_VENUE = { timeZone: 'venue', near: null } as const;
+const IGNORE_AREA = () => undefined;
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -110,6 +111,8 @@ export function TripPage({ id, competitions, onOpenShortlist }: Props) {
         [trip.data, competitions, today],
     );
     const [selection, select] = useSelection();
+    const selectFromList = useCallback((fixtureId: string) => select(fixtureId, 'list'), [select]);
+    const selectFromMap = useCallback((fixtureId: string) => select(fixtureId, 'map'), [select]);
     const status = trip.error ? `Couldn't load the trip: ${trip.error.message}` : trip.data ? '' : 'Loading trip…';
     return (
         <main className={styles.app} style={{ '--sidebar': `${sidebar.width}px` } as CSSProperties}>
@@ -131,7 +134,7 @@ export function TripPage({ id, competitions, onOpenShortlist }: Props) {
                         views={views}
                         onOpenShortlist={onOpenShortlist}
                         selection={selection}
-                        onSelect={id => select(id, 'list')}
+                        onSelect={selectFromList}
                     />
                 )}
             </aside>
@@ -141,11 +144,11 @@ export function TripPage({ id, competitions, onOpenShortlist }: Props) {
                     competitions={competitions}
                     fixtures={views}
                     near={null}
-                    onAreaChange={() => undefined}
+                    onAreaChange={IGNORE_AREA}
                     savedIds={NO_SAVED}
                     route={views}
                     selection={selection}
-                    onSelect={id => select(id, 'map')}
+                    onSelect={selectFromMap}
                 />
             </div>
         </main>

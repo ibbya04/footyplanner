@@ -100,3 +100,93 @@ test('shortlist items and their pins select each other the same way', async ({ p
     await pin(page, 'Real Madrid v Barcelona').locator('> div').click();
     await expect(card(page, 'Shortlist', 'Real Madrid v Barcelona')).toHaveAttribute('aria-current', 'true');
 });
+
+test('zooming in after selecting a fixture keeps the map and popup working without errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+
+    await pin(page, 'Liverpool v Arsenal').locator('> div').click();
+    await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Arsenal');
+    await expect(zoomedToCity(page)).toBeAttached();
+
+    const map = page.locator('.leaflet-container');
+    const box = await map.boundingBox();
+    if (!box) throw new Error('no map');
+    await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.7);
+    for (let i = 0; i < 6; i++) {
+        await page.mouse.wheel(0, -120);
+        await page.waitForTimeout(150);
+    }
+
+    await expect(map).toBeVisible();
+    await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Arsenal');
+    expect(errors).toEqual([]);
+});
+
+test('picking a fixture at a venue with multiple fixtures keeps the cluster spiderfied and marks the chosen pin', async ({
+    page,
+}) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+
+    await page.route('**/api/fixtures**', async route => {
+        const body = await (await route.fetch()).json();
+        const anfield = body.fixtures.find((f: { id: string }) => f.id === 'eng.1:e2e-1');
+        const barcelona = body.fixtures.find((f: { id: string }) => f.id === 'esp.1:e2e-2').away;
+        const second = {
+            ...anfield,
+            id: 'eng.1:e2e-1b',
+            kickoff: new Date(Date.parse(anfield.kickoff) + 2 * 86_400_000).toISOString(),
+            away: barcelona,
+        };
+        await route.fulfill({ json: { ...body, fixtures: [...body.fixtures, second] } });
+    });
+
+    await page.goto('/');
+    await expect(page.getByRole('status')).toHaveText('4 fixtures');
+
+    const cluster = page.locator('.leaflet-marker-pane .leaflet-marker-icon').filter({ hasText: /^2$/ });
+    await expect(cluster).toBeVisible();
+    await cluster.click();
+
+    const firstPin = pin(page, 'Liverpool v Arsenal');
+    const secondPin = pin(page, 'Liverpool v Barcelona');
+    await expect(firstPin.locator('> div')).toBeVisible();
+    await expect(secondPin.locator('> div')).toBeVisible();
+    await expect(page.locator('.leaflet-cluster-anim')).toHaveCount(0);
+
+    await secondPin.locator('> div').click();
+    await expect(card(page, 'Fixtures', 'Liverpool v Barcelona')).toHaveAttribute('aria-current', 'true');
+    await expect(page.locator('.leaflet-zoom-anim')).toHaveCount(0);
+    await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Barcelona');
+    await expect(firstPin.locator('> div')).toBeVisible();
+    await expect(secondPin.locator('> div')).toBeVisible();
+    await expect(secondPin.locator('> div')).toHaveAttribute('data-selected', 'true');
+    await expect(firstPin.locator('> div')).not.toHaveAttribute('data-selected', 'true');
+
+    await firstPin.locator('> div').click();
+    await expect(card(page, 'Fixtures', 'Liverpool v Arsenal')).toHaveAttribute('aria-current', 'true');
+    await expect(page.locator('.leaflet-popup')).toHaveCount(1);
+    await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Arsenal');
+    await expect(firstPin.locator('> div')).toBeVisible();
+    await expect(secondPin.locator('> div')).toBeVisible();
+    await expect(firstPin.locator('> div')).toHaveAttribute('data-selected', 'true');
+    await expect(secondPin.locator('> div')).not.toHaveAttribute('data-selected', 'true');
+
+    await page.getByRole('button', { name: 'Show Liverpool v Barcelona on the map' }).click();
+    await expect(page.locator('.leaflet-popup')).toHaveCount(1);
+    await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Barcelona');
+    await expect(firstPin.locator('> div')).toBeVisible();
+    await expect(secondPin.locator('> div')).toBeVisible();
+    await expect(secondPin.locator('> div')).toHaveAttribute('data-selected', 'true');
+
+    await page.getByRole('button', { name: 'Fit matches' }).click();
+    await expect(cluster).toBeVisible();
+    await page.getByRole('button', { name: 'Show Liverpool v Arsenal on the map' }).click();
+    await expect(page.locator('.leaflet-popup')).toHaveCount(1);
+    await expect(page.locator('.leaflet-popup')).toContainText('Liverpool v Arsenal');
+    await expect(firstPin.locator('> div')).toBeVisible();
+    await expect(secondPin.locator('> div')).toBeVisible();
+    await expect(firstPin.locator('> div')).toHaveAttribute('data-selected', 'true');
+    expect(errors).toEqual([]);
+});
